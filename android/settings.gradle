@@ -1,1 +1,3 @@
 rootProject.name = 'freedompay'
+include ':payboxsdk'
+project(':payboxsdk').projectDir = new File(rootDir.parentFile, 'kotlin-paybox-sdk-master/payboxsdk')

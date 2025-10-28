@@ -1,16 +1,16 @@
 plugins {
     id 'com.android.library'
-    id 'kotlin-android'
-    id 'kotlin-android-extensions'
+    id 'org.jetbrains.kotlin.android'
     id 'maven-publish'
 }
 
 android {
+    namespace 'money.paybox.payboxsdk'
     signingConfigs {
         release {
         }
     }
-    compileSdk 33
+    compileSdk 36
 
     defaultConfig {
         minSdk 19
@@ -38,18 +38,18 @@ android {
 
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
     }
 }
 
 dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'androidx.annotation:annotation-jvm:1.7.1'
 }
 repositories {
