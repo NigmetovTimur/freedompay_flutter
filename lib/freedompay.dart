@@ -12,6 +12,14 @@ class Freedompay {
     return _platform.initialize(merchantId: merchantId, secretKey: secretKey);
   }
 
+  Future<void> setResultUrl({required String url}) {
+    return _platform.setResultUrl(url: url);
+  }
+
+  Future<void> setCheckUrl({required String url}) {
+    return _platform.setCheckUrl(url: url);
+  }
+
   Future<Map<String, dynamic>> createPayment({
     required double amount,
     required String description,
