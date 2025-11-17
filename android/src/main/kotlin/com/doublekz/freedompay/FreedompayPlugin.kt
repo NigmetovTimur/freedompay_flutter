@@ -39,9 +39,10 @@ class FreedompayPlugin :
     private var activity: Activity? = null
     private var freedomApi: FreedomAPI? = null
     private var overlayContainer: FrameLayout? = null
+    private var userConfiguration = UserConfiguration()
     private var operationalConfiguration = OperationalConfiguration(testingMode = null)
     private var sdkConfiguration = SdkConfiguration(
-        userConfiguration = UserConfiguration(),
+        userConfiguration = userConfiguration,
         operationalConfiguration = operationalConfiguration
     )
 
@@ -76,6 +77,7 @@ class FreedompayPlugin :
             "confirmGooglePayment" -> handleConfirmGooglePayment(call, result)
             "setResultUrl" -> handleSetResultUrl(call, result)
             "setCheckUrl" -> handleSetCheckUrl(call, result)
+            "setUserConfiguration" -> handleSetUserConfiguration(call, result)
             else -> result.notImplemented()
         }
     }
@@ -112,6 +114,20 @@ class FreedompayPlugin :
             return
         }
         operationalConfiguration = operationalConfiguration.copy(checkUrl = url)
+        applyConfiguration()
+        result.success(null)
+    }
+
+    private fun handleSetUserConfiguration(call: MethodCall, result: Result) {
+        val phone = call.argument<String>("userPhone")?.takeIf { it.isNotBlank() }
+        val email = call.argument<String>("userEmail")?.takeIf { it.isNotBlank() }
+
+        if (phone == null && email == null) {
+            result.error("INVALID_ARGUMENTS", "userPhone or userEmail is required", null)
+            return
+        }
+
+        userConfiguration = userConfiguration.copy(userPhone = phone, userEmail = email)
         applyConfiguration()
         result.success(null)
     }
@@ -366,7 +382,10 @@ class FreedompayPlugin :
     }
 
     private fun applyConfiguration() {
-        sdkConfiguration = sdkConfiguration.copy(operationalConfiguration = operationalConfiguration)
+        sdkConfiguration = sdkConfiguration.copy(
+            userConfiguration = userConfiguration,
+            operationalConfiguration = operationalConfiguration
+        )
         freedomApi?.setConfiguration(sdkConfiguration)
     }
 
