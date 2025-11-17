@@ -2,6 +2,8 @@
 
 Плагин для Flutter, который инкапсулирует работу c нативным Paybox/FreedomPay SDK на Android и iOS. Он упрощает инициализацию SDK, открытие платежных форм, создание и подтверждение платежей, управление сохранёнными картами и интеграцию с Apple Pay/Google Pay.
 
+> **Примечание:** после миграции на FreedomPay Merchant/Payment SDK полный обзор всех доступных Flutter-методов (параметры, ожидаемые ответы и поддержка на Android/iOS) приведён в [docs/flutter_payment_flows.md](docs/flutter_payment_flows.md). Краткая русскоязычная инструкция с перечнем методов, параметров и форматов ответов находится в [docs/flutter_methods_ru.md](docs/flutter_methods_ru.md).
+
 ## Возможности
 
 - Инициализация Paybox SDK по `merchantId` и `secretKey`.
