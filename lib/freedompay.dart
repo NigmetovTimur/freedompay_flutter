@@ -20,10 +20,15 @@ class Freedompay {
     return _platform.setCheckUrl(url: url);
   }
 
-  Future<void> setUserConfiguration({String? userPhone, String? userEmail}) {
+  Future<void> setUserConfiguration({
+    String? userPhone,
+    String? userEmail,
+    String? userContactEmail,
+  }) {
     return _platform.setUserConfiguration(
       userPhone: userPhone,
       userEmail: userEmail,
+      userContactEmail: userContactEmail,
     );
   }
 
