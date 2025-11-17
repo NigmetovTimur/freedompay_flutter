@@ -27,6 +27,7 @@ import kz.freedompay.paymentsdk.api.model.config.OperationalConfiguration
 import kz.freedompay.paymentsdk.api.model.config.UserConfiguration
 import kz.freedompay.paymentsdk.api.view.PaymentView
 import java.util.HashMap
+import java.util.Locale
 
 /** FreedompayPlugin */
 class FreedompayPlugin :
@@ -590,20 +591,16 @@ private fun FreedomResult.Error.toErrorMap(): Map<String, Any?> = when (this) {
     else -> mapOf("errorCode" to this.javaClass.simpleName, "description" to this.toString())
 }
 
-private fun ValidationErrorType.readable(): String = when (this) {
-    ValidationErrorType.AmountOutOfRange -> "AmountOutOfRange"
-    ValidationErrorType.InvalidOrderId -> "InvalidOrderId"
-    ValidationErrorType.InvalidUserId -> "InvalidUserId"
-    ValidationErrorType.InvalidDescription -> "InvalidDescription"
-    ValidationErrorType.InvalidCurrency -> "InvalidCurrency"
-    ValidationErrorType.InvalidCardToken -> "InvalidCardToken"
-    ValidationErrorType.PaymentIdOutOfRange -> "PaymentIdOutOfRange"
-    ValidationErrorType.InvalidLifetime -> "InvalidLifetime"
-    ValidationErrorType.InvalidLanguage -> "InvalidLanguage"
-    ValidationErrorType.InvalidCheckUrl -> "InvalidCheckUrl"
-    ValidationErrorType.InvalidResultUrl -> "InvalidResultUrl"
-    ValidationErrorType.InvalidRequestMethod -> "InvalidRequestMethod"
-    ValidationErrorType.InvalidUserContactEmail -> "InvalidUserContactEmail"
-    ValidationErrorType.InvalidUserPhone -> "InvalidUserPhone"
-    ValidationErrorType.InvalidUserEmail -> "InvalidUserEmail"
+private fun ValidationErrorType.readable(): String {
+    val rawName = this.name
+    return if (rawName.contains("_")) {
+        rawName.split("_")
+            .joinToString(separator = "") { part ->
+                part.lowercase().replaceFirstChar { char ->
+                    char.titlecase(Locale.getDefault())
+                }
+            }
+    } else {
+        rawName
+    }
 }
