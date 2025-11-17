@@ -20,6 +20,13 @@ class Freedompay {
     return _platform.setCheckUrl(url: url);
   }
 
+  Future<void> setUserConfiguration({String? userPhone, String? userEmail}) {
+    return _platform.setUserConfiguration(
+      userPhone: userPhone,
+      userEmail: userEmail,
+    );
+  }
+
   Future<Map<String, dynamic>> createPayment({
     required double amount,
     required String description,

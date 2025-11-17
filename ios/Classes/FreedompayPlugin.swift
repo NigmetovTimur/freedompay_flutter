@@ -6,6 +6,8 @@ import UIKit
 public class FreedompayPlugin: NSObject, FlutterPlugin {
   private var freedomApi: FreedomAPI?
   private var sdkConfiguration = SdkConfiguration()
+  private var userPhone: String?
+  private var userEmail: String?
   private var checkUrl: String?
   private var resultUrl: String?
 
@@ -65,6 +67,8 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       handleSetResultUrl(call, result: result)
     case "setCheckUrl":
       handleSetCheckUrl(call, result: result)
+    case "setUserConfiguration":
+      handleSetUserConfiguration(call, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -99,6 +103,26 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     }
 
     resultUrl = url
+    applyConfiguration()
+    result(nil)
+  }
+
+  private func handleSetUserConfiguration(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard let arguments = call.arguments as? [String: Any] else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "Arguments are required", details: nil))
+      return
+    }
+
+    let phone = (arguments["userPhone"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    let email = (arguments["userEmail"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+
+    if phone == nil && email == nil {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "userPhone or userEmail is required", details: nil))
+      return
+    }
+
+    userPhone = phone
+    userEmail = email
     applyConfiguration()
     result(nil)
   }
@@ -334,7 +358,11 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
 
   private func applyConfiguration() {
     let operationalConfiguration = OperationalConfiguration(checkUrl: checkUrl, resultUrl: resultUrl)
-    sdkConfiguration = SdkConfiguration(operationalConfiguration: operationalConfiguration)
+    let userConfiguration = UserConfiguration(userPhone: userPhone, userEmail: userEmail)
+    sdkConfiguration = SdkConfiguration(
+      userConfiguration: userConfiguration,
+      operationalConfiguration: operationalConfiguration
+    )
     freedomApi?.setConfiguration(sdkConfiguration)
   }
 

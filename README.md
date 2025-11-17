@@ -41,13 +41,16 @@ final freedompay = const Freedompay();
 
 Future<void> pay() async {
   await freedompay.initialize(merchantId: 123456, secretKey: 'your-secret');
+  await freedompay.setUserConfiguration(
+    userPhone: '+123123123123',
+    userEmail: 'customer@example.com',
+  );
 
   final response = await freedompay.createPayment(
     amount: 1000.0,
     description: 'Оплата заказа #42',
     orderId: '42',
     userId: 'client-123',
-    extraParams: {'email': 'customer@example.com'},
   );
 
   final payment = response['payment'];
@@ -77,6 +80,7 @@ Future<void> pay() async {
 | Метод | Что отправляем | Что возвращается |
 | --- | --- | --- |
 | `initialize` | `merchantId` (int), `secretKey` (String). Данные уходят напрямую в Paybox SDK и не сохраняются в плагине. | `null` – успешная инициализация. Ошибки вернутся через `PlatformException`/`FlutterError`. |
+| `setUserConfiguration` | Контактные данные клиента: `userPhone`, `userEmail` (один или оба параметра). Передаются в Paybox SDK через `UserConfiguration`. | `null` при успешном обновлении настроек. |
 | `createPayment` | Сумму (`amount`), описание (`description`), опционально `orderId`, `userId`, `extraParams`. Передаётся в Paybox SDK, который создаёт платёж и при необходимости инициирует редирект. | `payment`: `{status, paymentId, merchantId, orderId, redirectUrl}`, `error`: `{errorCode, description}`. |
 | `createRecurringPayment` | `amount`, `description`, `recurringProfile`, опционально `orderId`, `extraParams`. | `recurringPayment`: `{status, paymentId, currency, amount, recurringProfile, recurringExpireDate}`, `error`. |
 | `createCardPayment` | `amount`, `description`, `orderId`, `userId`, + либо `cardToken`, либо `cardId`, опционально `extraParams`. | `payment`: как в `createPayment`, `error`. |
