@@ -29,6 +29,14 @@ abstract class FreedompayPlatform extends PlatformInterface {
     throw UnimplementedError('initialize() has not been implemented.');
   }
 
+  Future<void> setResultUrl({required String url}) {
+    throw UnimplementedError('setResultUrl() has not been implemented.');
+  }
+
+  Future<void> setCheckUrl({required String url}) {
+    throw UnimplementedError('setCheckUrl() has not been implemented.');
+  }
+
   Future<Map<String, dynamic>> createPayment({
     required double amount,
     required String description,

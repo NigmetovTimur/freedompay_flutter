@@ -31,6 +31,20 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   }
 
   @override
+  Future<void> setResultUrl({required String url}) {
+    return methodChannel.invokeMethod<void>('setResultUrl', <String, dynamic>{
+      'url': url,
+    });
+  }
+
+  @override
+  Future<void> setCheckUrl({required String url}) {
+    return methodChannel.invokeMethod<void>('setCheckUrl', <String, dynamic>{
+      'url': url,
+    });
+  }
+
+  @override
   Future<Map<String, dynamic>> createPayment({
     required double amount,
     required String description,

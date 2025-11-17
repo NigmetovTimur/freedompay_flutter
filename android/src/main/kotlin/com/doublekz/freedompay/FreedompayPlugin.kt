@@ -38,6 +38,11 @@ class FreedompayPlugin :
     private var activity: Activity? = null
     private var freedomApi: FreedomAPI? = null
     private var overlayContainer: FrameLayout? = null
+    private var operationalConfiguration = OperationalConfiguration(testingMode = null)
+    private var sdkConfiguration = SdkConfiguration(
+        userConfiguration = UserConfiguration(),
+        operationalConfiguration = operationalConfiguration
+    )
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "freedompay")
@@ -68,6 +73,8 @@ class FreedompayPlugin :
             "createNonAcceptancePayment" -> handleCreateNonAcceptancePayment(call, result)
             "createGooglePayment" -> handleCreateGooglePayment(call, result)
             "confirmGooglePayment" -> handleConfirmGooglePayment(call, result)
+            "setResultUrl" -> handleSetResultUrl(call, result)
+            "setCheckUrl" -> handleSetCheckUrl(call, result)
             else -> result.notImplemented()
         }
     }
@@ -81,13 +88,30 @@ class FreedompayPlugin :
         }
         // Region is not part of the public Dart API; defaulting to KZ for backward compatibility.
         freedomApi = FreedomAPI.create(merchantId.toString(), secretKey, Region.KZ).apply {
-            setConfiguration(
-                SdkConfiguration(
-                    userConfiguration = UserConfiguration(),
-                    operationalConfiguration = OperationalConfiguration(testingMode = null)
-                )
-            )
+            setConfiguration(sdkConfiguration)
         }
+        result.success(null)
+    }
+
+    private fun handleSetResultUrl(call: MethodCall, result: Result) {
+        val url = call.argument<String>("url")
+        if (url.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENTS", "url is required", null)
+            return
+        }
+        operationalConfiguration = operationalConfiguration.copy(resultUrl = url)
+        applyConfiguration()
+        result.success(null)
+    }
+
+    private fun handleSetCheckUrl(call: MethodCall, result: Result) {
+        val url = call.argument<String>("url")
+        if (url.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENTS", "url is required", null)
+            return
+        }
+        operationalConfiguration = operationalConfiguration.copy(checkUrl = url)
+        applyConfiguration()
         result.success(null)
     }
 
@@ -338,6 +362,11 @@ class FreedompayPlugin :
             result.error("NOT_INITIALIZED", "FreedomPay SDK is not initialized", null)
         }
         return sdk
+    }
+
+    private fun applyConfiguration() {
+        sdkConfiguration = sdkConfiguration.copy(operationalConfiguration = operationalConfiguration)
+        freedomApi?.setConfiguration(sdkConfiguration)
     }
 
     private fun deliverResult(result: Result, payload: Map<String, Any?>) {

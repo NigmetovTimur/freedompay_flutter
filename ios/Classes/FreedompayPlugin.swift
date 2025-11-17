@@ -6,6 +6,8 @@ import UIKit
 public class FreedompayPlugin: NSObject, FlutterPlugin {
   private var freedomApi: FreedomAPI?
   private var sdkConfiguration = SdkConfiguration()
+  private var checkUrl: String?
+  private var resultUrl: String?
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "freedompay", binaryMessenger: registrar.messenger())
@@ -59,6 +61,10 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
           "description": "Google Pay is not supported on iOS",
         ],
       ])
+    case "setResultUrl":
+      handleSetResultUrl(call, result: result)
+    case "setCheckUrl":
+      handleSetCheckUrl(call, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -79,6 +85,36 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     let api = FreedomAPI.create(merchantId: merchantId, secretKey: secretKey, region: region)
     api.setConfiguration(sdkConfiguration)
     freedomApi = api
+    result(nil)
+  }
+
+  private func handleSetResultUrl(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard
+      let arguments = call.arguments as? [String: Any],
+      let url = arguments["url"] as? String,
+      !url.isEmpty
+    else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "url is required", details: nil))
+      return
+    }
+
+    resultUrl = url
+    applyConfiguration()
+    result(nil)
+  }
+
+  private func handleSetCheckUrl(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard
+      let arguments = call.arguments as? [String: Any],
+      let url = arguments["url"] as? String,
+      !url.isEmpty
+    else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "url is required", details: nil))
+      return
+    }
+
+    checkUrl = url
+    applyConfiguration()
     result(nil)
   }
 
@@ -294,6 +330,12 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
         )
       }
     }
+  }
+
+  private func applyConfiguration() {
+    let operationalConfiguration = OperationalConfiguration(checkUrl: checkUrl, resultUrl: resultUrl)
+    sdkConfiguration = SdkConfiguration(operationalConfiguration: operationalConfiguration)
+    freedomApi?.setConfiguration(sdkConfiguration)
   }
 
   private func notSupported(method: String, result: @escaping FlutterResult) {
