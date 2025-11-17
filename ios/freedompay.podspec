@@ -15,8 +15,9 @@ Pod::Spec.new do |s|
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'PayBoxSdk', :path => '../SDK_iOS-input--master'
-  s.platform = :ios, '13.0'
+  # MIGRATED: old PayBox SDK -> new FreedomPay Payment SDK
+  s.dependency 'FreedomPaymentSdk', :podspec => '../merchant-sdk-ios-main/merchant-sdk-ios-main/FreedomPaymentSdk.podspec'
+  s.platform = :ios, '15.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
