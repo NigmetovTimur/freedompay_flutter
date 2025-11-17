@@ -127,7 +127,10 @@ class FreedompayPlugin :
             return
         }
 
-        userConfiguration = userConfiguration.copy(userPhone = phone, userEmail = email)
+        userConfiguration = userConfiguration.copy(
+            userPhone = phone ?: userConfiguration.userPhone,
+            userEmail = email ?: userConfiguration.userEmail
+        )
         applyConfiguration()
         result.success(null)
     }
