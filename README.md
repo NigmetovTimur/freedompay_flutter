@@ -41,10 +41,6 @@ final freedompay = const Freedompay();
 
 Future<void> pay() async {
   await freedompay.initialize(merchantId: 123456, secretKey: 'your-secret');
-  await freedompay.setUserConfiguration(
-    userPhone: '+123123123123',
-    userEmail: 'customer@example.com',
-  );
 
   final response = await freedompay.createPayment(
     amount: 1000.0,
@@ -80,7 +76,6 @@ Future<void> pay() async {
 | Метод | Что отправляем | Что возвращается |
 | --- | --- | --- |
 | `initialize` | `merchantId` (int), `secretKey` (String). Данные уходят напрямую в Paybox SDK и не сохраняются в плагине. | `null` – успешная инициализация. Ошибки вернутся через `PlatformException`/`FlutterError`. |
-| `setUserConfiguration` | Контактные данные клиента: `userPhone`, `userEmail` (один или оба параметра). Передаются в Paybox SDK через `UserConfiguration`. | `null` при успешном обновлении настроек. |
 | `createPayment` | Сумму (`amount`), описание (`description`), опционально `orderId`, `userId`, `extraParams`. Передаётся в Paybox SDK, который создаёт платёж и при необходимости инициирует редирект. | `payment`: `{status, paymentId, merchantId, orderId, redirectUrl}`, `error`: `{errorCode, description}`. |
 | `createRecurringPayment` | `amount`, `description`, `recurringProfile`, опционально `orderId`, `extraParams`. | `recurringPayment`: `{status, paymentId, currency, amount, recurringProfile, recurringExpireDate}`, `error`. |
 | `createCardPayment` | `amount`, `description`, `orderId`, `userId`, + либо `cardToken`, либо `cardId`, опционально `extraParams`. | `payment`: как в `createPayment`, `error`. |
@@ -97,6 +92,39 @@ Future<void> pay() async {
 | `confirmGooglePayment` *(Android)* | `paymentId` (String), `token` из Google Pay. | `payment`, `error`. На iOS вернётся ошибка, как описано выше. |
 | `createApplePayment` *(iOS)* | `amount`, `description`, опционально `orderId`, `userId`, `extraParams`. | `paymentId`, `error`. На Android метод пока не реализован. |
 | `confirmApplePayment` *(iOS)* | `paymentId` (String), `tokenData` (`Uint8List`) из `PKPaymentToken.paymentData`. | `payment`, `error`. |
+
+### Как вручную добавить `userConfiguration`
+
+Функция передачи контактных данных клиента удалена из Flutter API, но её можно вернуть в собственном форке, используя публичную конфигурацию FreedomPay SDK.
+
+- `SdkConfiguration` принимает два блока настроек: `userConfiguration` (контакты клиента) и `operationalConfiguration` (общие параметры SDK).
+- `UserConfiguration` содержит `userPhone`, `userContactEmail`, `userEmail`. Если телефон или email заданы, SDK автоматически подставит их на платёжной странице вместо запроса у пользователя.
+- `OperationalConfiguration` позволяет задать `testingMode`, `language`, `lifetime`, `autoClearing`, `checkUrl`, `resultUrl` и `requestMethod` (`GET/POST`). `null`-значения наследуют параметры мерчанта.
+
+Пример настройки в Android-проекте (на базе официальной документации FreedomPay):
+
+```kotlin
+val myUserConfig = UserConfiguration(
+    userPhone = "1234567890",
+    userEmail = "user@example.com"
+)
+
+val myOperationalConfig = OperationalConfiguration(
+    testingMode = false,
+    language = Language.EN,
+    lifetime = 600,
+    autoClearing = true,
+    resultUrl = "https://example.com/result",
+    requestMethod = HttpMethod.POST
+)
+
+val sdkConfiguration = SdkConfiguration(
+    userConfiguration = myUserConfig,
+    operationalConfiguration = myOperationalConfig
+)
+
+freedomApi.setConfiguration(sdkConfiguration)
+```
 
 > **Важно:** все ответы отправляются с нативной стороны на основной поток. Плагин самостоятельно убирает оверлей платежной формы после завершения операции. Если нужная операция требует UI, обязательно вызывайте её, когда плагин привязан к активити/контроллеру (например, после `WidgetsBinding.instance.addPostFrameCallback`).
 

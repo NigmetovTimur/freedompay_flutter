@@ -45,19 +45,6 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   }
 
   @override
-  Future<void> setUserConfiguration({
-    String? userPhone,
-    String? userEmail,
-    String? userContactEmail,
-  }) {
-    return methodChannel.invokeMethod<void>('setUserConfiguration', <String, dynamic>{
-      if (userPhone != null) 'userPhone': userPhone,
-      if (userEmail != null) 'userEmail': userEmail,
-      if (userContactEmail != null) 'userContactEmail': userContactEmail,
-    });
-  }
-
-  @override
   Future<Map<String, dynamic>> createPayment({
     required double amount,
     required String description,

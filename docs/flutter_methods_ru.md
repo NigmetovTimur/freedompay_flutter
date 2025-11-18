@@ -14,11 +14,6 @@
 - Параметры: идентификатор мерчанта и секретный ключ.
 - Ответ: `null` при успехе, либо `PlatformException` при неверных аргументах.
 
-### `setUserConfiguration({ String? userPhone, String? userEmail })`
-- Назначение: передать контактные данные клиента в нативный SDK через `UserConfiguration` (используйте вместо `extraParams`).
-- Параметры: телефон и/или email клиента. Можно указать один или оба значения.
-- Ответ: `null` при успешном обновлении конфигурации либо `PlatformException` при отсутствии обоих параметров.
-
 ## Создание платёжной страницы
 ### `createPayment({ required double amount, required String description, String? orderId, String? userId, Map<String, String>? extraParams })`
 - Назначение: открыть платёжную веб-страницу/фрейм.
