@@ -126,14 +126,8 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   }
 
   private func handleSetUserPhone(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    guard
-      let arguments = call.arguments as? [String: Any],
-      let phone = arguments["phone"] as? String,
-      !phone.isEmpty
-    else {
-      result(FlutterError(code: "INVALID_ARGUMENTS", message: "phone is required", details: nil))
-      return
-    }
+    let arguments = call.arguments as? [String: Any]
+    let phone = arguments?["phone"] as? String
 
     userConfiguration = UserConfiguration(
       userPhone: phone,
@@ -145,14 +139,8 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   }
 
   private func handleSetUserContactEmail(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    guard
-      let arguments = call.arguments as? [String: Any],
-      let email = arguments["email"] as? String,
-      !email.isEmpty
-    else {
-      result(FlutterError(code: "INVALID_ARGUMENTS", message: "email is required", details: nil))
-      return
-    }
+    let arguments = call.arguments as? [String: Any]
+    let email = arguments?["email"] as? String
 
     userConfiguration = UserConfiguration(
       userPhone: userConfiguration.userPhone,
@@ -164,14 +152,8 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   }
 
   private func handleSetUserEmail(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    guard
-      let arguments = call.arguments as? [String: Any],
-      let email = arguments["email"] as? String,
-      !email.isEmpty
-    else {
-      result(FlutterError(code: "INVALID_ARGUMENTS", message: "email is required", details: nil))
-      return
-    }
+    let arguments = call.arguments as? [String: Any]
+    let email = arguments?["email"] as? String
 
     userConfiguration = UserConfiguration(
       userPhone: userConfiguration.userPhone,
