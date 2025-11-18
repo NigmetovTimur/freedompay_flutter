@@ -37,15 +37,15 @@ abstract class FreedompayPlatform extends PlatformInterface {
     throw UnimplementedError('setCheckUrl() has not been implemented.');
   }
 
-  Future<void> setUserPhone({required String phone}) {
+  Future<void> setUserPhone({String? phone}) {
     throw UnimplementedError('setUserPhone() has not been implemented.');
   }
 
-  Future<void> setUserContactEmail({required String email}) {
+  Future<void> setUserContactEmail({String? email}) {
     throw UnimplementedError('setUserContactEmail() has not been implemented.');
   }
 
-  Future<void> setUserEmail({required String email}) {
+  Future<void> setUserEmail({String? email}) {
     throw UnimplementedError('setUserEmail() has not been implemented.');
   }
 

@@ -111,10 +111,6 @@ class FreedompayPlugin :
 
     private fun handleSetUserPhone(call: MethodCall, result: Result) {
         val phone = call.argument<String>("phone")
-        if (phone.isNullOrEmpty()) {
-            result.error("INVALID_ARGUMENTS", "phone is required", null)
-            return
-        }
         userConfiguration = userConfiguration.copy(userPhone = phone)
         applyConfiguration()
         result.success(null)
@@ -122,10 +118,6 @@ class FreedompayPlugin :
 
     private fun handleSetUserContactEmail(call: MethodCall, result: Result) {
         val email = call.argument<String>("email")
-        if (email.isNullOrEmpty()) {
-            result.error("INVALID_ARGUMENTS", "email is required", null)
-            return
-        }
         userConfiguration = userConfiguration.copy(userContactEmail = email)
         applyConfiguration()
         result.success(null)
@@ -133,10 +125,6 @@ class FreedompayPlugin :
 
     private fun handleSetUserEmail(call: MethodCall, result: Result) {
         val email = call.argument<String>("email")
-        if (email.isNullOrEmpty()) {
-            result.error("INVALID_ARGUMENTS", "email is required", null)
-            return
-        }
         userConfiguration = userConfiguration.copy(userEmail = email)
         applyConfiguration()
         result.success(null)
