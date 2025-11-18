@@ -95,11 +95,11 @@ Future<void> pay() async {
 
 ### Настройка `userConfiguration`
 
-Контактные данные клиента передаются через `UserConfiguration` и автоматически пробрасываются в SDK. Устанавливайте каждое поле отдельным методом:
+Контактные данные клиента передаются через `UserConfiguration` и автоматически пробрасываются в SDK. Устанавливайте каждое поле отдельным методом, при необходимости передавая `null` или вовсе не вызывая метод:
 
-- `setUserPhone(phone: String)` – отображает номер на платёжной странице;
-- `setUserContactEmail(email: String)` – контактный email клиента;
-- `setUserEmail(email: String)` – email пользователя для платёжной формы.
+- `setUserPhone({phone: String?})` – отображает номер на платёжной странице;
+- `setUserContactEmail({email: String?})` – контактный email клиента;
+- `setUserEmail({email: String?})` – email пользователя для платёжной формы.
 
 Также можно работать с конфигурацией напрямую:
 
