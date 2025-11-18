@@ -45,6 +45,30 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   }
 
   @override
+  Future<void> setUserPhone({required String phone}) {
+    return methodChannel.invokeMethod<void>('setUserPhone', <String, dynamic>{
+      'phone': phone,
+    });
+  }
+
+  @override
+  Future<void> setUserContactEmail({required String email}) {
+    return methodChannel.invokeMethod<void>(
+      'setUserContactEmail',
+      <String, dynamic>{
+        'email': email,
+      },
+    );
+  }
+
+  @override
+  Future<void> setUserEmail({required String email}) {
+    return methodChannel.invokeMethod<void>('setUserEmail', <String, dynamic>{
+      'email': email,
+    });
+  }
+
+  @override
   Future<Map<String, dynamic>> createPayment({
     required double amount,
     required String description,

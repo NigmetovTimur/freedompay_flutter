@@ -24,6 +24,7 @@ import kz.freedompay.paymentsdk.api.model.ValidationErrorType
 import kz.freedompay.paymentsdk.api.model.config.Region
 import kz.freedompay.paymentsdk.api.model.config.SdkConfiguration
 import kz.freedompay.paymentsdk.api.model.config.OperationalConfiguration
+import kz.freedompay.paymentsdk.api.model.config.UserConfiguration
 import kz.freedompay.paymentsdk.api.view.PaymentView
 import java.util.HashMap
 import java.util.Locale
@@ -39,7 +40,9 @@ class FreedompayPlugin :
     private var freedomApi: FreedomAPI? = null
     private var overlayContainer: FrameLayout? = null
     private var operationalConfiguration = OperationalConfiguration(testingMode = null)
+    private var userConfiguration = UserConfiguration()
     private var sdkConfiguration = SdkConfiguration(
+        userConfiguration = userConfiguration,
         operationalConfiguration = operationalConfiguration
     )
 
@@ -74,6 +77,9 @@ class FreedompayPlugin :
             "confirmGooglePayment" -> handleConfirmGooglePayment(call, result)
             "setResultUrl" -> handleSetResultUrl(call, result)
             "setCheckUrl" -> handleSetCheckUrl(call, result)
+            "setUserPhone" -> handleSetUserPhone(call, result)
+            "setUserContactEmail" -> handleSetUserContactEmail(call, result)
+            "setUserEmail" -> handleSetUserEmail(call, result)
             else -> result.notImplemented()
         }
     }
@@ -99,6 +105,39 @@ class FreedompayPlugin :
             return
         }
         operationalConfiguration = operationalConfiguration.copy(resultUrl = url)
+        applyConfiguration()
+        result.success(null)
+    }
+
+    private fun handleSetUserPhone(call: MethodCall, result: Result) {
+        val phone = call.argument<String>("phone")
+        if (phone.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENTS", "phone is required", null)
+            return
+        }
+        userConfiguration = userConfiguration.copy(userPhone = phone)
+        applyConfiguration()
+        result.success(null)
+    }
+
+    private fun handleSetUserContactEmail(call: MethodCall, result: Result) {
+        val email = call.argument<String>("email")
+        if (email.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENTS", "email is required", null)
+            return
+        }
+        userConfiguration = userConfiguration.copy(userContactEmail = email)
+        applyConfiguration()
+        result.success(null)
+    }
+
+    private fun handleSetUserEmail(call: MethodCall, result: Result) {
+        val email = call.argument<String>("email")
+        if (email.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENTS", "email is required", null)
+            return
+        }
+        userConfiguration = userConfiguration.copy(userEmail = email)
         applyConfiguration()
         result.success(null)
     }
@@ -365,6 +404,7 @@ class FreedompayPlugin :
 
     private fun applyConfiguration() {
         sdkConfiguration = sdkConfiguration.copy(
+            userConfiguration = userConfiguration,
             operationalConfiguration = operationalConfiguration
         )
         freedomApi?.setConfiguration(sdkConfiguration)
