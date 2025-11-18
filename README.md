@@ -93,9 +93,15 @@ Future<void> pay() async {
 | `createApplePayment` *(iOS)* | `amount`, `description`, опционально `orderId`, `userId`, `extraParams`. | `paymentId`, `error`. На Android метод пока не реализован. |
 | `confirmApplePayment` *(iOS)* | `paymentId` (String), `tokenData` (`Uint8List`) из `PKPaymentToken.paymentData`. | `payment`, `error`. |
 
-### Как вручную добавить `userConfiguration`
+### Настройка `userConfiguration`
 
-Функция передачи контактных данных клиента удалена из Flutter API, но её можно вернуть в собственном форке, используя публичную конфигурацию FreedomPay SDK.
+Контактные данные клиента передаются через `UserConfiguration` и автоматически пробрасываются в SDK. Устанавливайте каждое поле отдельным методом:
+
+- `setUserPhone(phone: String)` – отображает номер на платёжной странице;
+- `setUserContactEmail(email: String)` – контактный email клиента;
+- `setUserEmail(email: String)` – email пользователя для платёжной формы.
+
+Также можно работать с конфигурацией напрямую:
 
 - `SdkConfiguration` принимает два блока настроек: `userConfiguration` (контакты клиента) и `operationalConfiguration` (общие параметры SDK).
 - `UserConfiguration` содержит `userPhone`, `userContactEmail`, `userEmail`. Если телефон или email заданы, SDK автоматически подставит их на платёжной странице вместо запроса у пользователя.

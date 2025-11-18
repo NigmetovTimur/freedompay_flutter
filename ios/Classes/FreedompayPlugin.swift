@@ -8,6 +8,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   private var sdkConfiguration = SdkConfiguration()
   private var checkUrl: String?
   private var resultUrl: String?
+  private var userConfiguration = UserConfiguration()
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "freedompay", binaryMessenger: registrar.messenger())
@@ -65,6 +66,12 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       handleSetResultUrl(call, result: result)
     case "setCheckUrl":
       handleSetCheckUrl(call, result: result)
+    case "setUserPhone":
+      handleSetUserPhone(call, result: result)
+    case "setUserContactEmail":
+      handleSetUserContactEmail(call, result: result)
+    case "setUserEmail":
+      handleSetUserEmail(call, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -114,6 +121,63 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     }
 
     checkUrl = url
+    applyConfiguration()
+    result(nil)
+  }
+
+  private func handleSetUserPhone(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard
+      let arguments = call.arguments as? [String: Any],
+      let phone = arguments["phone"] as? String,
+      !phone.isEmpty
+    else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "phone is required", details: nil))
+      return
+    }
+
+    userConfiguration = UserConfiguration(
+      userPhone: phone,
+      userContactEmail: userConfiguration.userContactEmail,
+      userEmail: userConfiguration.userEmail
+    )
+    applyConfiguration()
+    result(nil)
+  }
+
+  private func handleSetUserContactEmail(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard
+      let arguments = call.arguments as? [String: Any],
+      let email = arguments["email"] as? String,
+      !email.isEmpty
+    else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "email is required", details: nil))
+      return
+    }
+
+    userConfiguration = UserConfiguration(
+      userPhone: userConfiguration.userPhone,
+      userContactEmail: email,
+      userEmail: userConfiguration.userEmail
+    )
+    applyConfiguration()
+    result(nil)
+  }
+
+  private func handleSetUserEmail(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard
+      let arguments = call.arguments as? [String: Any],
+      let email = arguments["email"] as? String,
+      !email.isEmpty
+    else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "email is required", details: nil))
+      return
+    }
+
+    userConfiguration = UserConfiguration(
+      userPhone: userConfiguration.userPhone,
+      userContactEmail: userConfiguration.userContactEmail,
+      userEmail: email
+    )
     applyConfiguration()
     result(nil)
   }
@@ -335,6 +399,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   private func applyConfiguration() {
     let operationalConfiguration = OperationalConfiguration(checkUrl: checkUrl, resultUrl: resultUrl)
     sdkConfiguration = SdkConfiguration(
+      userConfiguration: userConfiguration,
       operationalConfiguration: operationalConfiguration
     )
     freedomApi?.setConfiguration(sdkConfiguration)
