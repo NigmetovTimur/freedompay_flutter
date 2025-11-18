@@ -6,9 +6,6 @@ import UIKit
 public class FreedompayPlugin: NSObject, FlutterPlugin {
   private var freedomApi: FreedomAPI?
   private var sdkConfiguration = SdkConfiguration()
-  private var userPhone: String?
-  private var userEmail: String?
-  private var userContactEmail: String?
   private var checkUrl: String?
   private var resultUrl: String?
 
@@ -68,8 +65,6 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       handleSetResultUrl(call, result: result)
     case "setCheckUrl":
       handleSetCheckUrl(call, result: result)
-    case "setUserConfiguration":
-      handleSetUserConfiguration(call, result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -104,30 +99,6 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     }
 
     resultUrl = url
-    applyConfiguration()
-    result(nil)
-  }
-
-  private func handleSetUserConfiguration(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    guard let arguments = call.arguments as? [String: Any] else {
-      result(FlutterError(code: "INVALID_ARGUMENTS", message: "Arguments are required", details: nil))
-      return
-    }
-
-    let phone = (arguments["userPhone"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-    let email = (arguments["userEmail"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-    let contactEmail = (arguments["userContactEmail"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-    let resolvedEmail = email ?? contactEmail
-    let resolvedContactEmail = contactEmail ?? email
-
-    if phone == nil && email == nil && contactEmail == nil {
-      result(FlutterError(code: "INVALID_ARGUMENTS", message: "userPhone, userEmail or userContactEmail is required", details: nil))
-      return
-    }
-
-    userPhone = phone
-    userEmail = resolvedEmail
-    userContactEmail = resolvedContactEmail
     applyConfiguration()
     result(nil)
   }
@@ -363,13 +334,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
 
   private func applyConfiguration() {
     let operationalConfiguration = OperationalConfiguration(checkUrl: checkUrl, resultUrl: resultUrl)
-    let userConfiguration = UserConfiguration(
-      userPhone: userPhone,
-      userContactEmail: userContactEmail,
-      userEmail: userEmail
-    )
     sdkConfiguration = SdkConfiguration(
-      userConfiguration: userConfiguration,
       operationalConfiguration: operationalConfiguration
     )
     freedomApi?.setConfiguration(sdkConfiguration)

@@ -37,14 +37,6 @@ abstract class FreedompayPlatform extends PlatformInterface {
     throw UnimplementedError('setCheckUrl() has not been implemented.');
   }
 
-  Future<void> setUserConfiguration({
-    String? userPhone,
-    String? userEmail,
-    String? userContactEmail,
-  }) {
-    throw UnimplementedError('setUserConfiguration() has not been implemented.');
-  }
-
   Future<Map<String, dynamic>> createPayment({
     required double amount,
     required String description,
