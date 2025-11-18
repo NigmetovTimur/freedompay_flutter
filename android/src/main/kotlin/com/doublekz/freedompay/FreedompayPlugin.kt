@@ -122,6 +122,8 @@ class FreedompayPlugin :
         val phone = call.argument<String>("userPhone")?.takeIf { it.isNotBlank() }
         val email = call.argument<String>("userEmail")?.takeIf { it.isNotBlank() }
         val contactEmail = call.argument<String>("userContactEmail")?.takeIf { it.isNotBlank() }
+        val resolvedEmail = email ?: contactEmail
+        val resolvedContactEmail = contactEmail ?: email
 
         if (phone == null && email == null && contactEmail == null) {
             result.error(
@@ -134,8 +136,8 @@ class FreedompayPlugin :
 
         userConfiguration = userConfiguration.copy(
             userPhone = phone,
-            userContactEmail = contactEmail,
-            userEmail = email
+            userContactEmail = resolvedContactEmail,
+            userEmail = resolvedEmail
         )
         applyConfiguration()
         result.success(null)
