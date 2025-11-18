@@ -2,6 +2,7 @@ package com.doublekz.freedompay
 
 import android.app.Activity
 import android.graphics.Color
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -45,6 +46,10 @@ class FreedompayPlugin :
         userConfiguration = userConfiguration,
         operationalConfiguration = operationalConfiguration
     )
+
+    companion object {
+        private const val TAG = "FreedompayPlugin"
+    }
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "freedompay")
@@ -152,6 +157,10 @@ class FreedompayPlugin :
         val orderId = call.argument<String>("orderId")
         val userId = call.argument<String>("userId")
         val extraParams = call.argument<Map<String, Any?>>("extraParams").toHashMap()
+        Log.d(
+            TAG,
+            "createPayment request: amount=$amount, description=$description, orderId=$orderId, userId=$userId, extraParams=$extraParams, userConfiguration=$userConfiguration"
+        )
         withPaymentView(result) { paymentView ->
             sdk.setPaymentView(paymentView)
             val request = StandardPaymentRequest(
@@ -162,6 +171,7 @@ class FreedompayPlugin :
                 extraParams = extraParams
             )
             sdk.createPaymentPage(request) { paymentResult ->
+                Log.d(TAG, "createPayment result: $paymentResult")
                 val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
                 deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
             }
@@ -613,10 +623,15 @@ private fun FreedomResult.Error.toErrorMap(): Map<String, Any?> = when (this) {
 
     is FreedomResult.Error.Transaction -> mapOf(
         "errorCode" to "TransactionError",
-        "description" to "Transaction failed"
+        "description" to "Transaction failed",
+        "details" to this.toString()
     )
 
-    else -> mapOf("errorCode" to this.javaClass.simpleName, "description" to this.toString())
+    else -> mapOf(
+        "errorCode" to this.javaClass.simpleName,
+        "description" to this.toString(),
+        "details" to this.toString()
+    )
 }
 
 private fun ValidationErrorType.readable(): String {
