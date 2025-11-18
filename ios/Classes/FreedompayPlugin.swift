@@ -117,6 +117,8 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     let phone = (arguments["userPhone"] as? String).flatMap { $0.isEmpty ? nil : $0 }
     let email = (arguments["userEmail"] as? String).flatMap { $0.isEmpty ? nil : $0 }
     let contactEmail = (arguments["userContactEmail"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    let resolvedEmail = email ?? contactEmail
+    let resolvedContactEmail = contactEmail ?? email
 
     if phone == nil && email == nil && contactEmail == nil {
       result(FlutterError(code: "INVALID_ARGUMENTS", message: "userPhone, userEmail or userContactEmail is required", details: nil))
@@ -124,8 +126,8 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     }
 
     userPhone = phone
-    userEmail = email
-    userContactEmail = contactEmail
+    userEmail = resolvedEmail
+    userContactEmail = resolvedContactEmail
     applyConfiguration()
     result(nil)
   }
