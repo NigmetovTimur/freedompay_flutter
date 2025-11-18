@@ -8,6 +8,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   private var sdkConfiguration = SdkConfiguration()
   private var userPhone: String?
   private var userEmail: String?
+  private var userContactEmail: String?
   private var checkUrl: String?
   private var resultUrl: String?
 
@@ -115,14 +116,16 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
 
     let phone = (arguments["userPhone"] as? String).flatMap { $0.isEmpty ? nil : $0 }
     let email = (arguments["userEmail"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    let contactEmail = (arguments["userContactEmail"] as? String).flatMap { $0.isEmpty ? nil : $0 }
 
-    if phone == nil && email == nil {
-      result(FlutterError(code: "INVALID_ARGUMENTS", message: "userPhone or userEmail is required", details: nil))
+    if phone == nil && email == nil && contactEmail == nil {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "userPhone, userEmail or userContactEmail is required", details: nil))
       return
     }
 
     userPhone = phone
     userEmail = email
+    userContactEmail = contactEmail
     applyConfiguration()
     result(nil)
   }
@@ -358,7 +361,11 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
 
   private func applyConfiguration() {
     let operationalConfiguration = OperationalConfiguration(checkUrl: checkUrl, resultUrl: resultUrl)
-    let userConfiguration = UserConfiguration(userPhone: userPhone, userEmail: userEmail)
+    let userConfiguration = UserConfiguration(
+      userPhone: userPhone,
+      userContactEmail: userContactEmail,
+      userEmail: userEmail
+    )
     sdkConfiguration = SdkConfiguration(
       userConfiguration: userConfiguration,
       operationalConfiguration: operationalConfiguration

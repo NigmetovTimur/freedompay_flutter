@@ -121,15 +121,21 @@ class FreedompayPlugin :
     private fun handleSetUserConfiguration(call: MethodCall, result: Result) {
         val phone = call.argument<String>("userPhone")?.takeIf { it.isNotBlank() }
         val email = call.argument<String>("userEmail")?.takeIf { it.isNotBlank() }
+        val contactEmail = call.argument<String>("userContactEmail")?.takeIf { it.isNotBlank() }
 
-        if (phone == null && email == null) {
-            result.error("INVALID_ARGUMENTS", "userPhone or userEmail is required", null)
+        if (phone == null && email == null && contactEmail == null) {
+            result.error(
+                "INVALID_ARGUMENTS",
+                "userPhone, userEmail or userContactEmail is required",
+                null
+            )
             return
         }
 
         userConfiguration = userConfiguration.copy(
-            userPhone = phone ?: userConfiguration.userPhone,
-            userEmail = email ?: userConfiguration.userEmail
+            userPhone = phone,
+            userContactEmail = contactEmail,
+            userEmail = email
         )
         applyConfiguration()
         result.success(null)
