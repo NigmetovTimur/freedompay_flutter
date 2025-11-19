@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
   # MIGRATED: old PayBox SDK -> new FreedomPay Payment SDK
-  s.dependency 'FreedomPaymentSdk', :podspec => '../merchant-sdk-ios-main/merchant-sdk-ios-main/FreedomPaymentSdk.podspec'
+  s.dependency 'FreedomPaymentSdk'
   s.platform = :ios, '15.0'
 
   # Flutter.framework does not contain a i386 slice.
