@@ -8,7 +8,9 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   private var sdkConfiguration = SdkConfiguration()
   private var checkUrl: String?
   private var resultUrl: String?
-  private var userConfiguration = UserConfiguration()
+  private var userPhone: String?
+  private var userContactEmail: String?
+  private var userEmail: String?
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "freedompay", binaryMessenger: registrar.messenger())
@@ -129,11 +131,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     let arguments = call.arguments as? [String: Any]
     let phone = arguments?["phone"] as? String
 
-    userConfiguration = UserConfiguration(
-      userPhone: phone,
-      userContactEmail: userConfiguration.userContactEmail,
-      userEmail: userConfiguration.userEmail
-    )
+    userPhone = phone
     applyConfiguration()
     result(nil)
   }
@@ -142,11 +140,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     let arguments = call.arguments as? [String: Any]
     let email = arguments?["email"] as? String
 
-    userConfiguration = UserConfiguration(
-      userPhone: userConfiguration.userPhone,
-      userContactEmail: email,
-      userEmail: userConfiguration.userEmail
-    )
+    userContactEmail = email
     applyConfiguration()
     result(nil)
   }
@@ -155,11 +149,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     let arguments = call.arguments as? [String: Any]
     let email = arguments?["email"] as? String
 
-    userConfiguration = UserConfiguration(
-      userPhone: userConfiguration.userPhone,
-      userContactEmail: userConfiguration.userContactEmail,
-      userEmail: email
-    )
+    userEmail = email
     applyConfiguration()
     result(nil)
   }
@@ -380,6 +370,11 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
 
   private func applyConfiguration() {
     let operationalConfiguration = OperationalConfiguration(checkUrl: checkUrl, resultUrl: resultUrl)
+    let userConfiguration = UserConfiguration(
+      userPhone: userPhone,
+      userContactEmail: userContactEmail,
+      userEmail: userEmail
+    )
     sdkConfiguration = SdkConfiguration(
       userConfiguration: userConfiguration,
       operationalConfiguration: operationalConfiguration
