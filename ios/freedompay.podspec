@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'freedompay'
-  s.version          = '0.0.1'
+  s.version          = '0.2.4'
   s.summary          = 'Пакет позволяющий упростить взаимодействие с API FreedomPay'
   s.description      = <<-DESC
 Пакет позволяющий упростить взаимодействие с API FreedomPay
@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
   # MIGRATED: old PayBox SDK -> new FreedomPay Payment SDK
-  s.dependency 'FreedomPaymentSdk'
+  s.vendored_frameworks = 'FreedomPaymentSdk.xcframework'
   s.platform = :ios, '15.0'
 
   # Flutter.framework does not contain a i386 slice.
