@@ -25,7 +25,10 @@ abstract class FreedompayPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> initialize({required int merchantId, required String secretKey}) {
+  Future<void> initialize({
+    required int merchantId,
+    required String secretKey,
+  }) {
     throw UnimplementedError('initialize() has not been implemented.');
   }
 
@@ -59,6 +62,16 @@ abstract class FreedompayPlatform extends PlatformInterface {
     throw UnimplementedError('createPayment() has not been implemented.');
   }
 
+  Future<Map<String, dynamic>> createPaymentFrame({
+    required double amount,
+    required String description,
+    String? orderId,
+    String? userId,
+    Map<String, String>? extraParams,
+  }) {
+    throw UnimplementedError('createPaymentFrame() has not been implemented.');
+  }
+
   Future<Map<String, dynamic>> createRecurringPayment({
     required double amount,
     required String description,
@@ -66,7 +79,9 @@ abstract class FreedompayPlatform extends PlatformInterface {
     String? orderId,
     Map<String, String>? extraParams,
   }) {
-    throw UnimplementedError('createRecurringPayment() has not been implemented.');
+    throw UnimplementedError(
+      'createRecurringPayment() has not been implemented.',
+    );
   }
 
   Future<Map<String, dynamic>> createCardPayment({
@@ -85,7 +100,10 @@ abstract class FreedompayPlatform extends PlatformInterface {
     throw UnimplementedError('payByCard() has not been implemented.');
   }
 
-  Future<Map<String, dynamic>> getPaymentStatus({required int paymentId}) {
+  Future<Map<String, dynamic>> getPaymentStatus({
+    required int paymentId,
+    bool? includeLastTransactionInfo,
+  }) {
     throw UnimplementedError('getPaymentStatus() has not been implemented.');
   }
 
@@ -109,13 +127,15 @@ abstract class FreedompayPlatform extends PlatformInterface {
 
   Future<Map<String, dynamic>> addNewCard({
     required String userId,
+    String? orderId,
     String? postLink,
   }) {
     throw UnimplementedError('addNewCard() has not been implemented.');
   }
 
   Future<Map<String, dynamic>> removeAddedCard({
-    required int cardId,
+    int? cardId,
+    String? cardToken,
     required String userId,
   }) {
     throw UnimplementedError('removeAddedCard() has not been implemented.');
@@ -125,8 +145,12 @@ abstract class FreedompayPlatform extends PlatformInterface {
     throw UnimplementedError('getAddedCards() has not been implemented.');
   }
 
-  Future<Map<String, dynamic>> createNonAcceptancePayment({required int paymentId}) {
-    throw UnimplementedError('createNonAcceptancePayment() has not been implemented.');
+  Future<Map<String, dynamic>> createNonAcceptancePayment({
+    required int paymentId,
+  }) {
+    throw UnimplementedError(
+      'createNonAcceptancePayment() has not been implemented.',
+    );
   }
 
   Future<Map<String, dynamic>> createGooglePayment({
@@ -143,7 +167,9 @@ abstract class FreedompayPlatform extends PlatformInterface {
     required String paymentId,
     required String token,
   }) {
-    throw UnimplementedError('confirmGooglePayment() has not been implemented.');
+    throw UnimplementedError(
+      'confirmGooglePayment() has not been implemented.',
+    );
   }
 
   Future<Map<String, dynamic>> createApplePayment({

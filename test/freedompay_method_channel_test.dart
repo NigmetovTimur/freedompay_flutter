@@ -56,4 +56,70 @@ void main() {
       'error': null,
     });
   });
+
+  test(
+    'createPaymentFrame sends the frame method with payment arguments',
+    () async {
+      await platform.createPaymentFrame(
+        amount: 750,
+        description: 'Frame order',
+        orderId: 'frame-42',
+        userId: 'user-2',
+        extraParams: const {'flow': 'frame'},
+      );
+
+      expect(lastMethodCall.method, 'createPaymentFrame');
+      expect(lastMethodCall.arguments, <String, dynamic>{
+        'amount': 750.0,
+        'description': 'Frame order',
+        'orderId': 'frame-42',
+        'userId': 'user-2',
+        'extraParams': const {'flow': 'frame'},
+      });
+    },
+  );
+
+  test('getPaymentStatus passes includeLastTransactionInfo when set', () async {
+    await platform.getPaymentStatus(
+      paymentId: 99,
+      includeLastTransactionInfo: true,
+    );
+
+    expect(lastMethodCall.method, 'getPaymentStatus');
+    expect(lastMethodCall.arguments, <String, dynamic>{
+      'paymentId': 99,
+      'includeLastTransactionInfo': true,
+    });
+  });
+
+  test(
+    'addNewCard prefers orderId and keeps legacy postLink optional',
+    () async {
+      await platform.addNewCard(
+        userId: 'user-3',
+        orderId: 'card-bind-1',
+        postLink: 'legacy-post-link',
+      );
+
+      expect(lastMethodCall.method, 'addNewCard');
+      expect(lastMethodCall.arguments, <String, dynamic>{
+        'userId': 'user-3',
+        'orderId': 'card-bind-1',
+        'postLink': 'legacy-post-link',
+      });
+    },
+  );
+
+  test('removeAddedCard can send cardToken instead of legacy cardId', () async {
+    await platform.removeAddedCard(
+      userId: 'user-4',
+      cardToken: 'card-token-123',
+    );
+
+    expect(lastMethodCall.method, 'removeAddedCard');
+    expect(lastMethodCall.arguments, <String, dynamic>{
+      'userId': 'user-4',
+      'cardToken': 'card-token-123',
+    });
+  });
 }

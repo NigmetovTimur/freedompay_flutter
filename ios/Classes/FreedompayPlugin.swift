@@ -26,8 +26,15 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       handleInitialize(call, result: result)
     case "createPayment":
       handleCreatePayment(call, result: result)
+    case "createPaymentFrame":
+      handleCreatePaymentFrame(call, result: result)
     case "createRecurringPayment":
-      notSupported(method: call.method, result: result)
+      result(
+        unsupportedPayload(
+          valueKey: "recurringPayment",
+          message: "Recurring payments are not supported by FreedomPaymentSdk"
+        )
+      )
     case "createCardPayment":
       handleCreateCardPayment(call, result: result)
     case "payByCard":
@@ -53,19 +60,19 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     case "confirmApplePayment":
       handleConfirmApplePayment(call, result: result)
     case "createGooglePayment":
-      result([
-        "error": [
-          "errorCode": -1,
-          "description": "Google Pay is not supported on iOS",
-        ],
-      ])
+      result(
+        unsupportedPayload(
+          valueKey: "paymentId",
+          message: "Google Pay is not supported on iOS"
+        )
+      )
     case "confirmGooglePayment":
-      result([
-        "error": [
-          "errorCode": -1,
-          "description": "Google Pay is not supported on iOS",
-        ],
-      ])
+      result(
+        unsupportedPayload(
+          valueKey: "payment",
+          message: "Google Pay is not supported on iOS"
+        )
+      )
     case "setResultUrl":
       handleSetResultUrl(call, result: result)
     case "setCheckUrl":
@@ -124,6 +131,53 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     withPaymentView(result: result) { paymentView in
       api.setPaymentView(paymentView)
       api.createPaymentPage(paymentRequest: request) { sdkResult in
+        switch sdkResult {
+        case let .success(payment):
+          self.deliver(
+            result: result,
+            payload: [
+              "payment": self.mapFromPaymentResponse(payment),
+              "error": NSNull(),
+            ]
+          )
+        case let .error(error):
+          self.deliver(
+            result: result,
+            payload: [
+              "payment": NSNull(),
+              "error": self.mapFromError(error),
+            ]
+          )
+        }
+      }
+    }
+  }
+
+  private func handleCreatePaymentFrame(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    guard
+      let arguments = call.arguments as? [String: Any],
+      let amountValue = arguments["amount"] as? NSNumber,
+      let description = arguments["description"] as? String,
+      !description.isEmpty
+    else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "amount and description are required", details: nil))
+      return
+    }
+    guard let api = ensureApi(result: result) else {
+      return
+    }
+
+    let request = StandardPaymentRequest(
+      amount: amountValue.decimalValue,
+      description: description,
+      userId: arguments["userId"] as? String,
+      orderId: arguments["orderId"] as? String,
+      extraParams: mapExtraParams(arguments["extraParams"])
+    )
+
+    withPaymentView(result: result) { paymentView in
+      api.setPaymentView(paymentView)
+      api.createPaymentFrame(paymentRequest: request) { sdkResult in
         switch sdkResult {
         case let .success(payment):
           self.deliver(
@@ -310,7 +364,9 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       return
     }
 
-    api.getPaymentStatus(paymentId.int64Value) { sdkResult in
+    let includeLastTransactionInfo = arguments["includeLastTransactionInfo"] as? Bool
+
+    api.getPaymentStatus(paymentId.int64Value, includeLastTransactionInfo: includeLastTransactionInfo) { sdkResult in
       switch sdkResult {
       case let .success(status):
         self.deliver(
@@ -451,10 +507,12 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     guard let api = ensureApi(result: result) else {
       return
     }
+    let orderId = (arguments["orderId"] as? String)?.nonEmpty
+      ?? (arguments["postLink"] as? String)?.nonEmpty
 
     withPaymentView(result: result) { paymentView in
       api.setPaymentView(paymentView)
-      api.addNewCard(userId: userId) { sdkResult in
+      api.addNewCard(userId: userId, orderId: orderId) { sdkResult in
         switch sdkResult {
         case let .success(payment):
           self.deliver(
@@ -482,16 +540,21 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       result(FlutterError(code: "INVALID_ARGUMENTS", message: "Arguments are required", details: nil))
       return
     }
-    guard let cardId = arguments["cardId"] as? NSNumber,
-          let userId = arguments["userId"] as? String else {
-      result(FlutterError(code: "INVALID_ARGUMENTS", message: "cardId and userId are required", details: nil))
+    guard let userId = arguments["userId"] as? String else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "userId is required", details: nil))
+      return
+    }
+    let cardToken = (arguments["cardToken"] as? String)?.nonEmpty
+      ?? (arguments["cardId"] as? NSNumber)?.stringValue
+    guard let cardToken else {
+      result(FlutterError(code: "INVALID_ARGUMENTS", message: "cardToken (or legacy cardId) is required", details: nil))
       return
     }
     guard let api = ensureApi(result: result) else {
       return
     }
 
-    api.removeCard(userId, cardToken: cardId.stringValue) { sdkResult in
+    api.removeCard(userId, cardToken: cardToken) { sdkResult in
       switch sdkResult {
       case let .success(card):
         self.deliver(
@@ -693,16 +756,18 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     freedomApi?.setConfiguration(sdkConfiguration)
   }
 
-  private func notSupported(method: String, result: @escaping FlutterResult) {
-    deliver(
-      result: result,
-      payload: [
-        "error": [
-          "errorCode": -1,
-          "description": "\(method) is not supported by FreedomPaymentSdk",
-        ],
-      ]
-    )
+  private func unsupportedPayload(valueKey: String, message: String) -> [String: Any] {
+    cleanDictionary([
+      valueKey: NSNull(),
+      "error": unsupportedError(message),
+    ])
+  }
+
+  private func unsupportedError(_ message: String) -> [String: Any?] {
+    [
+      "errorCode": "UNSUPPORTED",
+      "description": message,
+    ]
   }
 
   private func ensureApi(result: FlutterResult) -> FreedomAPI? {
@@ -820,17 +885,23 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       "transactionStatus": status.paymentStatus,
       "canReject": status.canReject,
       "isCaptured": status.captured,
+      "cardName": status.cardName,
       "cardPan": status.cardPan,
       "createDate": status.createDate,
       "paymentMethod": status.paymentMethod,
       "clearingAmount": status.clearingAmount.map(decimalToDouble),
       "revokedAmount": status.revokedAmount.map(decimalToDouble),
       "refundAmount": status.refundAmount.map(decimalToDouble),
+      "reference": status.reference,
+      "authCode": status.authCode,
       "currency": status.currency,
       "amount": decimalToDouble(status.amount),
       "orderId": status.orderId,
       "failureCode": status.failureCode,
       "failureDescription": status.failureDescription,
+      "revokedPayments": status.revokedPayments?.map(mapFromRevokedPayment),
+      "refundPayments": status.refundPayments?.map(mapFromRefundPayment),
+      "lastTransactionInfo": status.lastTransactionInfo.map(mapFromLastTransactionInfo),
     ]
   }
 
@@ -882,6 +953,31 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       "recurringProfile": NSNull(),
       "cardhash": card.cardHash,
       "date": card.deletedAt,
+    ]
+  }
+
+  private func mapFromRevokedPayment(_ payment: RevokedPayment) -> [String: Any?] {
+    [
+      "paymentId": payment.paymentId,
+      "paymentStatus": payment.paymentStatus,
+    ]
+  }
+
+  private func mapFromRefundPayment(_ payment: RefundPayment) -> [String: Any?] {
+    [
+      "paymentId": payment.paymentId,
+      "paymentStatus": payment.paymentStatus,
+      "amount": payment.amount.map(decimalToDouble),
+      "paymentDate": payment.paymentDate,
+      "reference": payment.reference,
+    ]
+  }
+
+  private func mapFromLastTransactionInfo(_ info: LastTransactionInfo) -> [String: Any?] {
+    [
+      "status": info.status,
+      "failureCode": info.failureCode,
+      "failureDescription": info.failureDescription,
     ]
   }
 
@@ -950,5 +1046,11 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       params[key] = String(describing: value)
     }
     return params.isEmpty ? nil : params
+  }
+}
+
+private extension String {
+  var nonEmpty: String? {
+    isEmpty ? nil : self
   }
 }

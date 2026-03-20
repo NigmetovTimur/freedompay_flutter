@@ -85,6 +85,23 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   }
 
   @override
+  Future<Map<String, dynamic>> createPaymentFrame({
+    required double amount,
+    required String description,
+    String? orderId,
+    String? userId,
+    Map<String, String>? extraParams,
+  }) {
+    return _invokeMap('createPaymentFrame', <String, dynamic>{
+      'amount': amount,
+      'description': description,
+      if (orderId != null) 'orderId': orderId,
+      if (userId != null) 'userId': userId,
+      if (extraParams != null) 'extraParams': extraParams,
+    });
+  }
+
+  @override
   Future<Map<String, dynamic>> createRecurringPayment({
     required double amount,
     required String description,
@@ -128,9 +145,14 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   }
 
   @override
-  Future<Map<String, dynamic>> getPaymentStatus({required int paymentId}) {
+  Future<Map<String, dynamic>> getPaymentStatus({
+    required int paymentId,
+    bool? includeLastTransactionInfo,
+  }) {
     return _invokeMap('getPaymentStatus', <String, dynamic>{
       'paymentId': paymentId,
+      if (includeLastTransactionInfo != null)
+        'includeLastTransactionInfo': includeLastTransactionInfo,
     });
   }
 
@@ -166,22 +188,26 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   @override
   Future<Map<String, dynamic>> addNewCard({
     required String userId,
+    String? orderId,
     String? postLink,
   }) {
     return _invokeMap('addNewCard', <String, dynamic>{
       'userId': userId,
+      if (orderId != null) 'orderId': orderId,
       if (postLink != null) 'postLink': postLink,
     });
   }
 
   @override
   Future<Map<String, dynamic>> removeAddedCard({
-    required int cardId,
+    int? cardId,
+    String? cardToken,
     required String userId,
   }) {
     return _invokeMap('removeAddedCard', <String, dynamic>{
-      'cardId': cardId,
       'userId': userId,
+      if (cardId != null) 'cardId': cardId,
+      if (cardToken != null) 'cardToken': cardToken,
     });
   }
 

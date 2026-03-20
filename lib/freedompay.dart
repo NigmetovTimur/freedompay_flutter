@@ -1,4 +1,3 @@
-
 import 'dart:typed_data';
 
 import 'freedompay_platform_interface.dart';
@@ -8,7 +7,10 @@ class Freedompay {
 
   FreedompayPlatform get _platform => FreedompayPlatform.instance;
 
-  Future<void> initialize({required int merchantId, required String secretKey}) {
+  Future<void> initialize({
+    required int merchantId,
+    required String secretKey,
+  }) {
     return _platform.initialize(merchantId: merchantId, secretKey: secretKey);
   }
 
@@ -40,6 +42,22 @@ class Freedompay {
     Map<String, String>? extraParams,
   }) {
     return _platform.createPayment(
+      amount: amount,
+      description: description,
+      orderId: orderId,
+      userId: userId,
+      extraParams: extraParams,
+    );
+  }
+
+  Future<Map<String, dynamic>> createPaymentFrame({
+    required double amount,
+    required String description,
+    String? orderId,
+    String? userId,
+    Map<String, String>? extraParams,
+  }) {
+    return _platform.createPaymentFrame(
       amount: amount,
       description: description,
       orderId: orderId,
@@ -88,8 +106,14 @@ class Freedompay {
     return _platform.payByCard(paymentId: paymentId);
   }
 
-  Future<Map<String, dynamic>> getPaymentStatus({required int paymentId}) {
-    return _platform.getPaymentStatus(paymentId: paymentId);
+  Future<Map<String, dynamic>> getPaymentStatus({
+    required int paymentId,
+    bool? includeLastTransactionInfo,
+  }) {
+    return _platform.getPaymentStatus(
+      paymentId: paymentId,
+      includeLastTransactionInfo: includeLastTransactionInfo,
+    );
   }
 
   Future<Map<String, dynamic>> makeRevokePayment({
@@ -112,23 +136,35 @@ class Freedompay {
 
   Future<Map<String, dynamic>> addNewCard({
     required String userId,
-    String? postLink,
+    String? orderId,
+    @Deprecated('Use orderId instead.') String? postLink,
   }) {
-    return _platform.addNewCard(userId: userId, postLink: postLink);
+    return _platform.addNewCard(
+      userId: userId,
+      orderId: orderId,
+      postLink: postLink,
+    );
   }
 
   Future<Map<String, dynamic>> removeAddedCard({
-    required int cardId,
+    int? cardId,
+    String? cardToken,
     required String userId,
   }) {
-    return _platform.removeAddedCard(cardId: cardId, userId: userId);
+    return _platform.removeAddedCard(
+      cardId: cardId,
+      cardToken: cardToken,
+      userId: userId,
+    );
   }
 
   Future<Map<String, dynamic>> getAddedCards({required String userId}) {
     return _platform.getAddedCards(userId: userId);
   }
 
-  Future<Map<String, dynamic>> createNonAcceptancePayment({required int paymentId}) {
+  Future<Map<String, dynamic>> createNonAcceptancePayment({
+    required int paymentId,
+  }) {
     return _platform.createNonAcceptancePayment(paymentId: paymentId);
   }
 

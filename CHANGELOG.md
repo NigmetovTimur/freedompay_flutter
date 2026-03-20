@@ -1,3 +1,9 @@
+## 0.4.0
+
+* Synchronize the public Flutter API with Android and iOS plugins: add `createPaymentFrame`, forward `includeLastTransactionInfo`, support `orderId` in `addNewCard`, and support `cardToken` in `removeAddedCard`.
+* Fix Android `payByCard` to use `PaymentView` for CVC / 3DS flows and normalize unsupported wallet/recurring methods to a consistent `UNSUPPORTED` payload.
+* Expand status payload mapping, add a dedicated SDK manual, remove duplicated legacy docs, and align the example app with the plugin's Android `minSdk 28` requirement.
+
 ## 0.3.0
 
 * Enable the main payment flows on iOS by wiring the Swift plugin to the current FreedomPaymentSdk APIs, including `PaymentView`-based UI flows, card operations, direct confirmation, and Apple Pay methods.

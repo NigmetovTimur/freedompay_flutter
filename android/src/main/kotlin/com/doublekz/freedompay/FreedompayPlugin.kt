@@ -67,6 +67,7 @@ class FreedompayPlugin :
         when (call.method) {
             "initialize" -> handleInitialize(call, result)
             "createPayment" -> handleCreatePayment(call, result)
+            "createPaymentFrame" -> handleCreatePaymentFrame(call, result)
             "createRecurringPayment" -> handleCreateRecurringPayment(call, result)
             "createCardPayment" -> handleCreateCardPayment(call, result)
             "payByCard" -> handlePayByCard(call, result)
@@ -80,6 +81,16 @@ class FreedompayPlugin :
             "createNonAcceptancePayment" -> handleCreateNonAcceptancePayment(call, result)
             "createGooglePayment" -> handleCreateGooglePayment(call, result)
             "confirmGooglePayment" -> handleConfirmGooglePayment(call, result)
+            "createApplePayment" -> handleUnsupportedMethod(
+                result = result,
+                valueKey = "paymentId",
+                message = "Apple Pay is not supported on Android"
+            )
+            "confirmApplePayment" -> handleUnsupportedMethod(
+                result = result,
+                valueKey = "payment",
+                message = "Apple Pay is not supported on Android"
+            )
             "setResultUrl" -> handleSetResultUrl(call, result)
             "setCheckUrl" -> handleSetCheckUrl(call, result)
             "setUserPhone" -> handleSetUserPhone(call, result)
@@ -161,15 +172,15 @@ class FreedompayPlugin :
             TAG,
             "createPayment request: amount=$amount, description=$description, orderId=$orderId, userId=$userId, extraParams=$extraParams, userConfiguration=$userConfiguration"
         )
+        val request = StandardPaymentRequest(
+            amount = amount,
+            description = description,
+            userId = userId,
+            orderId = orderId,
+            extraParams = extraParams
+        )
         withPaymentView(result) { paymentView ->
             sdk.setPaymentView(paymentView)
-            val request = StandardPaymentRequest(
-                amount = amount,
-                description = description,
-                userId = userId,
-                orderId = orderId,
-                extraParams = extraParams
-            )
             sdk.createPaymentPage(request) { paymentResult ->
                 Log.d(TAG, "createPayment result: $paymentResult")
                 val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
@@ -178,11 +189,38 @@ class FreedompayPlugin :
         }
     }
 
+    private fun handleCreatePaymentFrame(call: MethodCall, result: Result) {
+        val sdk = ensureSdk(result) ?: return
+        val amount = call.argument<Number>("amount")?.toFloat()
+        val description = call.argument<String>("description")
+        if (amount == null || description.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENTS", "amount and description are required", null)
+            return
+        }
+        val orderId = call.argument<String>("orderId")
+        val userId = call.argument<String>("userId")
+        val extraParams = call.argument<Map<String, Any?>>("extraParams").toHashMap()
+        val request = StandardPaymentRequest(
+            amount = amount,
+            description = description,
+            userId = userId,
+            orderId = orderId,
+            extraParams = extraParams
+        )
+        withPaymentView(result) { paymentView ->
+            sdk.setPaymentView(paymentView)
+            sdk.createPaymentFrame(request) { paymentResult ->
+                val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
+                deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+            }
+        }
+    }
+
     private fun handleCreateRecurringPayment(call: MethodCall, result: Result) {
-        // Not available in the new SDK; preserve API shape with an explicit error payload.
-        deliverResult(
-            result,
-            mapOf("recurringPayment" to null, "error" to mapOf("errorCode" to "UNSUPPORTED", "description" to "Recurring payments are not supported by the FreedomPay Android SDK"))
+        handleUnsupportedMethod(
+            result = result,
+            valueKey = "recurringPayment",
+            message = "Recurring payments are not supported by the FreedomPay Android SDK"
         )
     }
 
@@ -223,20 +261,24 @@ class FreedompayPlugin :
             result.error("INVALID_ARGUMENTS", "paymentId is required", null)
             return
         }
-        sdk.confirmCardPayment(paymentId.toLong()) { paymentResult ->
-            val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
-            deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+        withPaymentView(result) { paymentView ->
+            sdk.setPaymentView(paymentView)
+            sdk.confirmCardPayment(paymentId.toLong()) { paymentResult ->
+                val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
+                deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+            }
         }
     }
 
     private fun handleGetPaymentStatus(call: MethodCall, result: Result) {
         val sdk = ensureSdk(result) ?: return
         val paymentId = call.argument<Int>("paymentId")
+        val includeLastTransactionInfo = call.argument<Boolean>("includeLastTransactionInfo")
         if (paymentId == null) {
             result.error("INVALID_ARGUMENTS", "paymentId is required", null)
             return
         }
-        sdk.getPaymentStatus(paymentId.toLong(), null) { statusResult ->
+        sdk.getPaymentStatus(paymentId.toLong(), includeLastTransactionInfo) { statusResult ->
             when (statusResult) {
                 is FreedomResult.Success -> deliverResult(result, mapOf("status" to statusResult.value.toMap(), "error" to null))
                 is FreedomResult.Error -> deliverResult(result, mapOf("status" to null, "error" to statusResult.toErrorMap()))
@@ -297,10 +339,10 @@ class FreedompayPlugin :
             result.error("INVALID_ARGUMENTS", "userId is required", null)
             return
         }
-        val postLink = call.argument<String>("postLink")
+        val orderId = call.argument<String>("orderId") ?: call.argument<String>("postLink")
         withPaymentView(result) { paymentView ->
             sdk.setPaymentView(paymentView)
-            sdk.addNewCard(userId, postLink) { paymentResult ->
+            sdk.addNewCard(userId, orderId) { paymentResult ->
                 val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
                 deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
             }
@@ -310,13 +352,14 @@ class FreedompayPlugin :
     private fun handleRemoveAddedCard(call: MethodCall, result: Result) {
         val sdk = ensureSdk(result) ?: return
         val cardId = call.argument<Int>("cardId")
+        val cardToken = call.argument<String>("cardToken")
         val userId = call.argument<String>("userId")
-        if (cardId == null || userId.isNullOrEmpty()) {
-            result.error("INVALID_ARGUMENTS", "cardId and userId are required", null)
+        val resolvedCardToken = cardToken ?: cardId?.toString()
+        if (resolvedCardToken.isNullOrEmpty() || userId.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENTS", "cardToken (or legacy cardId) and userId are required", null)
             return
         }
-        // New SDK requires card token; fall back to stringified cardId to preserve compatibility.
-        sdk.removeAddedCard(cardId.toString(), userId) { cardResult ->
+        sdk.removeAddedCard(resolvedCardToken, userId) { cardResult ->
             when (cardResult) {
                 is FreedomResult.Success -> deliverResult(result, mapOf("card" to cardResult.value.toMap(), "error" to null))
                 is FreedomResult.Error -> deliverResult(result, mapOf("card" to null, "error" to cardResult.toErrorMap()))
@@ -390,6 +433,17 @@ class FreedompayPlugin :
             val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
             deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
         }
+    }
+
+    private fun handleUnsupportedMethod(
+        result: Result,
+        valueKey: String,
+        message: String
+    ) {
+        deliverResult(
+            result,
+            mapOf(valueKey to null, "error" to unsupportedError(message))
+        )
     }
 
     private fun ensureSdk(result: Result): FreedomAPI? {
@@ -519,21 +573,63 @@ private fun Status.toMap(): Map<String, Any?> = mapOf(
     "paymentId" to paymentId,
     "transactionStatus" to paymentStatus,
     "canReject" to canReject,
+    "isCaptured" to captured,
+    "cardName" to cardName,
+    "cardPan" to cardPan,
+    "createDate" to createDate,
     "paymentMethod" to paymentMethod,
     "clearingAmount" to clearingAmount,
     "revokedAmount" to revokedAmount,
     "refundAmount" to refundAmount,
+    "reference" to reference,
+    "authCode" to authCode,
+    "failureCode" to failureCode,
+    "failureDescription" to failureDescription,
+    "revokedPayments" to revokedPayments?.map { it.toMap() },
+    "refundPayments" to refundPayments?.map { it.toMap() },
+    "lastTransactionInfo" to lastTransactionInfo?.toMap(),
     "currency" to currency,
     "amount" to amount,
     "orderId" to orderId
 )
 
 private fun ClearingStatus.toMap(): Map<String, Any?> = when (this) {
-    is ClearingStatus.Success -> mapOf("status" to "Success", "amount" to amount)
-    ClearingStatus.Failed -> mapOf("status" to "Failed")
-    ClearingStatus.ExceedsPaymentAmount -> mapOf("status" to "ExceedsPaymentAmount")
+    is ClearingStatus.Success -> mapOf(
+        "status" to "success",
+        "amount" to amount,
+        "clearingAmount" to amount
+    )
+    ClearingStatus.Failed -> mapOf(
+        "status" to "failed",
+        "amount" to null,
+        "clearingAmount" to null
+    )
+    ClearingStatus.ExceedsPaymentAmount -> mapOf(
+        "status" to "exceedsPaymentAmount",
+        "amount" to null,
+        "clearingAmount" to null
+    )
     else -> mapOf("status" to this.toString())
 }
+
+private fun kz.freedompay.paymentsdk.api.model.RevokedPayment.toMap(): Map<String, Any?> = mapOf(
+    "paymentId" to paymentId,
+    "paymentStatus" to paymentStatus
+)
+
+private fun kz.freedompay.paymentsdk.api.model.RefundPayment.toMap(): Map<String, Any?> = mapOf(
+    "paymentId" to paymentId,
+    "paymentStatus" to paymentStatus,
+    "amount" to amount,
+    "paymentDate" to paymentDate,
+    "reference" to reference
+)
+
+private fun kz.freedompay.paymentsdk.api.model.LastTransactionInfo.toMap(): Map<String, Any?> = mapOf(
+    "status" to status,
+    "failureCode" to failureCode,
+    "failureDescription" to failureDescription
+)
 
 private fun kz.freedompay.paymentsdk.api.model.Card.toMap(): Map<String, Any?> = mapOf(
     "status" to status,
@@ -633,6 +729,11 @@ private fun FreedomResult.Error.toErrorMap(): Map<String, Any?> = when (this) {
         "details" to this.toString()
     )
 }
+
+private fun unsupportedError(message: String): Map<String, Any?> = mapOf(
+    "errorCode" to "UNSUPPORTED",
+    "description" to message
+)
 
 private fun ValidationErrorType.readable(): String {
     val rawName = this.name
