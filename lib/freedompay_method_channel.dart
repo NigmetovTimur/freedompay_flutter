@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -23,7 +21,10 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   }
 
   @override
-  Future<void> initialize({required int merchantId, required String secretKey}) {
+  Future<void> initialize({
+    required int merchantId,
+    required String secretKey,
+  }) {
     return methodChannel.invokeMethod<void>('initialize', <String, dynamic>{
       'merchantId': merchantId,
       'secretKey': secretKey,
@@ -55,9 +56,7 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   Future<void> setUserContactEmail({String? email}) {
     return methodChannel.invokeMethod<void>(
       'setUserContactEmail',
-      <String, dynamic>{
-        'email': email,
-      },
+      <String, dynamic>{'email': email},
     );
   }
 
@@ -130,7 +129,9 @@ class MethodChannelFreedompay extends FreedompayPlatform {
 
   @override
   Future<Map<String, dynamic>> getPaymentStatus({required int paymentId}) {
-    return _invokeMap('getPaymentStatus', <String, dynamic>{'paymentId': paymentId});
+    return _invokeMap('getPaymentStatus', <String, dynamic>{
+      'paymentId': paymentId,
+    });
   }
 
   @override
@@ -157,7 +158,9 @@ class MethodChannelFreedompay extends FreedompayPlatform {
 
   @override
   Future<Map<String, dynamic>> makeCancelPayment({required int paymentId}) {
-    return _invokeMap('makeCancelPayment', <String, dynamic>{'paymentId': paymentId});
+    return _invokeMap('makeCancelPayment', <String, dynamic>{
+      'paymentId': paymentId,
+    });
   }
 
   @override
@@ -188,7 +191,9 @@ class MethodChannelFreedompay extends FreedompayPlatform {
   }
 
   @override
-  Future<Map<String, dynamic>> createNonAcceptancePayment({required int paymentId}) {
+  Future<Map<String, dynamic>> createNonAcceptancePayment({
+    required int paymentId,
+  }) {
     return _invokeMap('createNonAcceptancePayment', <String, dynamic>{
       'paymentId': paymentId,
     });

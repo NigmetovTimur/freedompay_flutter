@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'freedompay'
-  s.version          = '0.2.4'
+  s.version          = '0.3.0'
   s.summary          = 'Пакет позволяющий упростить взаимодействие с API FreedomPay'
   s.description      = <<-DESC
 Пакет позволяющий упростить взаимодействие с API FreedomPay

@@ -18,7 +18,7 @@
 ### `createPayment({ required double amount, required String description, String? orderId, String? userId, Map<String, String>? extraParams })`
 - Назначение: открыть платёжную веб-страницу/фрейм.
 - Android: собирает `StandardPaymentRequest` и открывает `PaymentView`; результат `{ payment, error }`, где `payment` включает `status`, `paymentId`, `merchantId`, `orderId`, `redirectUrl: null`.
-- iOS: новый Payment SDK не поддерживает веб-страницу; возвращается `error` с кодом `UNSUPPORTED`.
+- iOS: также собирает `StandardPaymentRequest`, монтирует полноэкранный `PaymentView` и вызывает `createPaymentPage`; ответ имеет тот же формат `{ payment, error }`.
 
 ## Рекуррентный платёж
 ### `createRecurringPayment({ required double amount, required String description, required String recurringProfile, String? orderId, Map<String, String>? extraParams })`
@@ -29,12 +29,12 @@
 ### `createCardPayment({ required double amount, required String description, required String orderId, required String userId, int? cardId, String? cardToken, Map<String, String>? extraParams })`
 - Назначение: сформировать платёж по токену карты.
 - Android: используется только `cardToken`; `cardId` игнорируется. Ответ `{ payment, error }` из `createCardPayment` Merchant SDK.
-- iOS: Payment SDK не предоставляет прямого метода; возвращается `error` `UNSUPPORTED`.
+- iOS: вызывает `createCardPayment` Payment SDK. Предпочтительно передавать `cardToken`; если его нет, плагин для совместимости строкифицирует legacy `cardId`.
 
 ### `payByCard({ required int paymentId })`
 - Назначение: подтвердить платеж, созданный через `createCardPayment`.
 - Android: вызывает `confirmCardPayment`; ответ `{ payment, error }`.
-- iOS: не поддерживается, возвращает `error` `UNSUPPORTED`.
+- iOS: вызывает `confirmCardPayment`, а при необходимости UI (например, 3DS) автоматически поднимает `PaymentView`; ответ `{ payment, error }`.
 
 ## Статус платежа
 ### `getPaymentStatus({ required int paymentId })`
@@ -62,13 +62,13 @@
 ### `createNonAcceptancePayment({ required int paymentId })`
 - Назначение: старый безакцептный сценарий.
 - Android: вызывает `confirmDirectPayment` → `{ payment, error }`.
-- iOS: не поддерживается, возвращает `error` `UNSUPPORTED`.
+- iOS: также вызывает `confirmDirectPayment` и использует `PaymentView` для UI-части потока; ответ `{ payment, error }`.
 
 ## Управление картами
 ### `addNewCard({ required String userId, String? postLink })`
 - Назначение: добавить новую карту пользователю.
 - Android: открывает `PaymentView` для добавления; ответ `{ payment, error }`, `cardId` — плейсхолдер (SDK отдаёт токен). Возвращённый `postLink` не используется SDK напрямую.
-- iOS: не поддерживается, возвращает `error` `UNSUPPORTED`.
+- iOS: тоже открывает `PaymentView` и вызывает `addNewCard`; ответ `{ payment, error }`. `postLink` остаётся legacy-параметром Flutter API и не используется нативным iOS SDK напрямую.
 
 ### `getAddedCards({ required String userId })`
 - Назначение: получить список карт.
@@ -77,8 +77,8 @@
 
 ### `removeAddedCard({ required int cardId, required String userId })`
 - Назначение: удалить сохранённую карту.
-- Android: `removeAddedCard` → `{ payment, error }`, в новых SDK `cardId` конвертируется в строковый токен-плейсхолдер.
-- iOS: `removeAddedCard` поддерживается и возвращает `{ payment, error }`.
+- Android: `removeAddedCard` → `{ card, error }`, в новых SDK `cardId` конвертируется в строковый токен-плейсхолдер.
+- iOS: `removeAddedCard` поддерживается и возвращает `{ card, error }`.
 
 ## Google Pay (Android)
 ### `createGooglePayment({ required double amount, required String description, String? orderId, String? userId, Map<String, String>? extraParams })`
@@ -94,9 +94,9 @@
 ## Apple Pay (iOS)
 ### `createApplePayment({ required double amount, required String description, String? orderId, String? userId, Map<String, String>? extraParams })`
 ### `confirmApplePayment({ required String paymentId, required Uint8List tokenData })`
-- Назначение: исторический Apple Pay флоу старого SDK.
+- Назначение: создать Apple Pay платёж и затем подтвердить его `tokenData` из `PKPaymentToken.paymentData`.
 - Android: оба метода возвращают `error` `UNSUPPORTED`.
-- iOS: текущий Payment SDK не предоставляет готовый Apple Pay флоу; методы возвращают `error` `UNSUPPORTED`. Для Apple Pay требуется сторонняя интеграция с передачей токенов через сервер и дальнейшее использование других API SDK (не входит в плагин).
+- iOS: `createApplePayment` возвращает `{ paymentId, error }`, а `confirmApplePayment` отправляет `tokenData` в SDK и возвращает `{ payment, error }`.
 
 ## Обработка ошибок
 - Android: ошибки `FreedomResult.Error` переводятся в карту `{ errorCode: <Validation|Network|Infrastructure|Webview|Transaction>, description }`.

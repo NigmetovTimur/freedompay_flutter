@@ -11,14 +11,16 @@ import XCTest
 
 class RunnerTests: XCTestCase {
 
-  func testGetPlatformVersion() {
+  func testGooglePayIsReportedAsUnsupportedOnIOS() {
     let plugin = FreedompayPlugin()
 
-    let call = FlutterMethodCall(methodName: "getPlatformVersion", arguments: [])
+    let call = FlutterMethodCall(methodName: "createGooglePayment", arguments: [:])
 
     let resultExpectation = expectation(description: "result block must be called.")
     plugin.handle(call) { result in
-      XCTAssertEqual(result as! String, "iOS " + UIDevice.current.systemVersion)
+      let payload = result as? [String: Any]
+      let error = payload?["error"] as? [String: Any]
+      XCTAssertEqual(error?["description"] as? String, "Google Pay is not supported on iOS")
       resultExpectation.fulfill()
     }
     waitForExpectations(timeout: 1)

@@ -26,7 +26,7 @@ final result = await const Freedompay().createPayment(
 );
 ```
 - Android builds `StandardPaymentRequest`, injects a `PaymentView` overlay, and calls `createPaymentPage`. The result map has keys `{payment, error}` where `payment` contains `status`, `paymentId`, `merchantId`, `orderId`, and `redirectUrl: null`.
-- iOS currently returns `error` because the Payment SDK does not expose a web payment page API.
+- iOS also builds `StandardPaymentRequest`, mounts a fullscreen `PaymentView` overlay, and calls `createPaymentPage`. The response shape matches Android: `{payment, error}`.
 
 ## Recurring payments
 `createRecurringPayment` keeps its Dart signature but returns `{recurringPayment: null, error}` on Android and `error` on iOS because the new SDKs do not provide a direct equivalent.
@@ -43,7 +43,7 @@ final result = await const Freedompay().createCardPayment(
 );
 ```
 - Android requires `cardToken` (legacy `cardId` is no longer accepted) and calls `createCardPayment`. Follow-up confirmation uses `payByCard(paymentId: ...)` which maps to `confirmCardPayment`.
-- iOS reports `not supported` for both methods because direct card payments are not exposed by the Payment SDK.
+- iOS calls `createCardPayment` as well. Prefer passing `cardToken`; for backward compatibility the plugin still stringifies legacy `cardId` when no token is provided. Follow-up confirmation uses `payByCard(paymentId: ...)`, opens `PaymentView` when the SDK needs UI (for example, 3DS), and maps to `confirmCardPayment`.
 
 ## Payment status
 ```dart
@@ -84,7 +84,7 @@ final cancel = await const Freedompay().makeCancelPayment(paymentId: 123);
 final result = await const Freedompay().createNonAcceptancePayment(paymentId: 123);
 ```
 - Android maps to `confirmDirectPayment` and returns `{payment, error}`.
-- iOS returns `not supported` because the Payment SDK lacks this flow.
+- iOS maps to `confirmDirectPayment`, attaches `PaymentView` in the same way as other UI flows, and returns `{payment, error}`.
 
 ## Card management
 ```dart
@@ -93,7 +93,7 @@ await const Freedompay().getAddedCards(userId: 'user-1');
 await const Freedompay().removeAddedCard(cardId: 1, userId: 'user-1');
 ```
 - Android opens a `PaymentView` for `addNewCard`, lists cards via `getAddedCards`, and removes cards with `removeAddedCard`. Card IDs are placeholders because the new SDK exposes tokens instead of numeric IDs.
-- iOS supports listing and removing cards; `addNewCard` is not exposed by the Payment SDK and returns an `error`.
+- iOS also opens `PaymentView` for `addNewCard`, supports listing cards via `getAddedCards`, and removes cards through `removeCard`. As on Android, the public Flutter API still exposes numeric `cardId`, so the plugin falls back to stringifying it for compatibility.
 
 ## Google Pay (Android only)
 ```dart
@@ -111,7 +111,19 @@ final confirmation = await const Freedompay().confirmGooglePayment(
 - iOS explicitly returns an `error` for both methods.
 
 ## Apple Pay (iOS only)
-`createApplePayment` and `confirmApplePayment` remain in the Dart API but currently return `error` on iOS (and Android) because the new SDK does not expose Apple Pay flows. Handle the error on the Flutter side or integrate Apple Pay directly in your app and pass card tokens into `createCardPayment` where applicable.
+```dart
+final creation = await const Freedompay().createApplePayment(
+  amount: 100,
+  description: 'Apple Pay order',
+);
+final confirmation = await const Freedompay().confirmApplePayment(
+  paymentId: creation['paymentId'],
+  tokenData: appleTokenData,
+);
+```
+- iOS calls `createApplePayment` and returns `{paymentId, error}`.
+- `confirmApplePayment` sends `tokenData` from `PKPaymentToken.paymentData` to the SDK and returns `{payment, error}`.
+- Android explicitly returns an `error` for Apple Pay methods.
 
 ## Common error shape
 All native calls return a map with the legacy keys. If a native error occurs, the payload contains an `error` map with:

@@ -1,3 +1,8 @@
+## 0.3.0
+
+* Enable the main payment flows on iOS by wiring the Swift plugin to the current FreedomPaymentSdk APIs, including `PaymentView`-based UI flows, card operations, direct confirmation, and Apple Pay methods.
+* Normalize iOS payload serialization for Flutter method channels and refresh tests/example/docs to match the current plugin API.
+
 ## 0.1.8
 
 * Add verbose Android logging around `createPayment` requests and responses, and include detailed error payloads for transaction failures.

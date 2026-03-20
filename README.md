@@ -27,7 +27,7 @@
 
 ```yaml
 dependencies:
-  freedompay: ^1.0.0 # укажите актуальную версию
+  freedompay: ^0.3.0
 ```
 
 Выполните `flutter pub get` для загрузки зависимостей.
