@@ -784,7 +784,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
             "PaymentView attached to presentation controller",
             details: [
               "flow": flowName,
-              "paymentViewFrame": encodeRect(paymentView.frame),
+              "paymentViewFrame": self.encodeRect(paymentView.frame),
               "paymentViewWindowAttached": paymentView.window != nil,
             ]
           )
@@ -943,7 +943,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
           details: [
             "stage": "load",
             "paymentViewWindowAttached": session.controller.paymentView.window != nil,
-            "paymentViewFrame": encodeRect(session.controller.paymentView.frame),
+            "paymentViewFrame": self.encodeRect(session.controller.paymentView.frame),
           ]
         )
       )

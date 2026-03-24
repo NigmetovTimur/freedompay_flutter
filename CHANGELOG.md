@@ -1,3 +1,7 @@
+## 0.4.3
+
+* Fix iOS archive compilation under newer Swift toolchains by making closure captures explicit for helper calls used in payment diagnostics.
+
 ## 0.4.2
 
 * Fix iOS archive compatibility with newer Xcode/Swift toolchains by replacing deprecated `NSStringFromCGRect` diagnostics with `NSCoder.string(for:)`.
