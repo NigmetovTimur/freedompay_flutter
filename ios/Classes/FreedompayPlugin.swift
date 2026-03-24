@@ -803,6 +803,11 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
         self.handleUnexpectedPaymentControllerDismissal(session: session)
       }
 
+      controller.onBack = { [weak self, weak session] in
+        guard let self, let session else { return }
+        self.handleUserDismissedPaymentView(session: session)
+      }
+
       self.log(
         "Presenting full-screen FreedomPay controller",
         details: [
@@ -1037,6 +1042,28 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
           code: "PAYMENT_VIEW_DISMISSED",
           description: "FreedomPay payment screen was dismissed before the SDK completed",
           details: ["stage": "dismiss"]
+        )
+      )
+    }
+  }
+
+  private func handleUserDismissedPaymentView(session: PaymentViewSession) {
+    DispatchQueue.main.async {
+      guard self.activePaymentSession === session, !session.isCompleted else {
+        return
+      }
+
+      self.log(
+        "FreedomPay controller was closed by user",
+        details: ["flow": session.flowName]
+      )
+      self.completePaymentViewFlow(
+        session: session,
+        payload: self.paymentViewFailurePayload(
+          flowName: session.flowName,
+          code: "PAYMENT_VIEW_DISMISSED",
+          description: "FreedomPay payment screen was closed by user",
+          details: ["stage": "dismiss_by_user"]
         )
       )
     }
@@ -1466,10 +1493,15 @@ private final class PaymentViewSession {
 private final class FreedompayPaymentViewController: UIViewController {
   let flowName: String
   let paymentView = PaymentView()
+  private let headerView = UIView()
+  private let titleLabel = UILabel()
+  private let backButton = UIButton(type: .system)
+  private let separatorView = UIView()
   private let activityIndicator = UIActivityIndicatorView(style: .large)
   private var didNotifyAppear = false
   var onDidAppear: (() -> Void)?
   var onDismissed: (() -> Void)?
+  var onBack: (() -> Void)?
 
   init(flowName: String) {
     self.flowName = flowName
@@ -1487,6 +1519,27 @@ private final class FreedompayPaymentViewController: UIViewController {
     super.viewDidLoad()
     view.backgroundColor = .systemBackground
 
+    headerView.translatesAutoresizingMaskIntoConstraints = false
+    headerView.backgroundColor = .systemBackground
+    view.addSubview(headerView)
+
+    backButton.translatesAutoresizingMaskIntoConstraints = false
+    backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+    backButton.tintColor = .label
+    backButton.addTarget(self, action: #selector(handleBackTap), for: .touchUpInside)
+    headerView.addSubview(backButton)
+
+    titleLabel.translatesAutoresizingMaskIntoConstraints = false
+    titleLabel.text = titleText
+    titleLabel.textColor = .label
+    titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+    titleLabel.textAlignment = .center
+    headerView.addSubview(titleLabel)
+
+    separatorView.translatesAutoresizingMaskIntoConstraints = false
+    separatorView.backgroundColor = .separator
+    headerView.addSubview(separatorView)
+
     paymentView.translatesAutoresizingMaskIntoConstraints = false
     view.addSubview(paymentView)
 
@@ -1496,12 +1549,26 @@ private final class FreedompayPaymentViewController: UIViewController {
     view.addSubview(activityIndicator)
 
     NSLayoutConstraint.activate([
+      headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+      headerView.heightAnchor.constraint(equalToConstant: 56),
+      backButton.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 8),
+      backButton.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+      backButton.widthAnchor.constraint(equalToConstant: 44),
+      backButton.heightAnchor.constraint(equalToConstant: 44),
+      titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor),
+      titleLabel.centerYAnchor.constraint(equalTo: headerView.centerYAnchor),
+      separatorView.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
+      separatorView.trailingAnchor.constraint(equalTo: headerView.trailingAnchor),
+      separatorView.bottomAnchor.constraint(equalTo: headerView.bottomAnchor),
+      separatorView.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
       paymentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
       paymentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-      paymentView.topAnchor.constraint(equalTo: view.topAnchor),
+      paymentView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
       paymentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
       activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-      activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      activityIndicator.centerYAnchor.constraint(equalTo: paymentView.centerYAnchor),
     ])
   }
 
@@ -1526,5 +1593,21 @@ private final class FreedompayPaymentViewController: UIViewController {
     } else {
       activityIndicator.stopAnimating()
     }
+  }
+
+  private var titleText: String {
+    switch flowName {
+    case "addNewCard":
+      return "Добавление карты"
+    case "payByCard", "createNonAcceptancePayment":
+      return "Подтверждение оплаты"
+    default:
+      return "Оплата"
+    }
+  }
+
+  @objc
+  private func handleBackTap() {
+    onBack?()
   }
 }

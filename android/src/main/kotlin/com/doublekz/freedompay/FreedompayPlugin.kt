@@ -1,10 +1,17 @@
 package com.doublekz.freedompay
 
 import android.app.Activity
+import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Typeface
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.appcompat.widget.AppCompatImageButton
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -40,6 +47,7 @@ class FreedompayPlugin :
     private var activity: Activity? = null
     private var freedomApi: FreedomAPI? = null
     private var overlayContainer: FrameLayout? = null
+    private var activeOverlaySession: OverlaySession? = null
     private var operationalConfiguration = OperationalConfiguration(testingMode = null)
     private var userConfiguration = UserConfiguration()
     private var sdkConfiguration = SdkConfiguration(
@@ -179,12 +187,12 @@ class FreedompayPlugin :
             orderId = orderId,
             extraParams = extraParams
         )
-        withPaymentView(result) { paymentView ->
+        withPaymentView(result, paymentScreenTitle(orderId)) { paymentView, session ->
             sdk.setPaymentView(paymentView)
             sdk.createPaymentPage(request) { paymentResult ->
                 Log.d(TAG, "createPayment result: $paymentResult")
                 val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
-                deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+                completeOverlaySession(session, mapOf("payment" to paymentMap, "error" to errorMap))
             }
         }
     }
@@ -207,11 +215,11 @@ class FreedompayPlugin :
             orderId = orderId,
             extraParams = extraParams
         )
-        withPaymentView(result) { paymentView ->
+        withPaymentView(result, paymentScreenTitle(orderId)) { paymentView, session ->
             sdk.setPaymentView(paymentView)
             sdk.createPaymentFrame(request) { paymentResult ->
                 val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
-                deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+                completeOverlaySession(session, mapOf("payment" to paymentMap, "error" to errorMap))
             }
         }
     }
@@ -261,11 +269,11 @@ class FreedompayPlugin :
             result.error("INVALID_ARGUMENTS", "paymentId is required", null)
             return
         }
-        withPaymentView(result) { paymentView ->
+        withPaymentView(result, "Подтверждение оплаты") { paymentView, session ->
             sdk.setPaymentView(paymentView)
             sdk.confirmCardPayment(paymentId.toLong()) { paymentResult ->
                 val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
-                deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+                completeOverlaySession(session, mapOf("payment" to paymentMap, "error" to errorMap))
             }
         }
     }
@@ -340,11 +348,11 @@ class FreedompayPlugin :
             return
         }
         val orderId = call.argument<String>("orderId") ?: call.argument<String>("postLink")
-        withPaymentView(result) { paymentView ->
+        withPaymentView(result, "Добавление карты") { paymentView, session ->
             sdk.setPaymentView(paymentView)
             sdk.addNewCard(userId, orderId) { paymentResult ->
                 val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
-                deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+                completeOverlaySession(session, mapOf("payment" to paymentMap, "error" to errorMap))
             }
         }
     }
@@ -389,9 +397,12 @@ class FreedompayPlugin :
             result.error("INVALID_ARGUMENTS", "paymentId is required", null)
             return
         }
-        sdk.confirmDirectPayment(paymentId.toLong()) { paymentResult ->
-            val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
-            deliverResult(result, mapOf("payment" to paymentMap, "error" to errorMap))
+        withPaymentView(result, "Подтверждение оплаты") { paymentView, session ->
+            sdk.setPaymentView(paymentView)
+            sdk.confirmDirectPayment(paymentId.toLong()) { paymentResult ->
+                val (paymentMap, errorMap) = paymentResult.asPaymentResponse()
+                completeOverlaySession(session, mapOf("payment" to paymentMap, "error" to errorMap))
+            }
         }
     }
 
@@ -474,7 +485,11 @@ class FreedompayPlugin :
         }
     }
 
-    private fun withPaymentView(result: Result, action: (PaymentView) -> Unit) {
+    private fun withPaymentView(
+        result: Result,
+        title: String,
+        action: (PaymentView, OverlaySession) -> Unit
+    ) {
         val currentActivity = activity
         if (currentActivity == null) {
             result.error("NO_ACTIVITY", "Plugin is not attached to an activity", null)
@@ -485,9 +500,36 @@ class FreedompayPlugin :
             val root = currentActivity.findViewById<ViewGroup>(android.R.id.content)
             val container = FrameLayout(currentActivity)
             container.setBackgroundColor(Color.WHITE)
+            container.fitsSystemWindows = true
+            val content = LinearLayout(currentActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundColor(Color.WHITE)
+            }
+            val session = OverlaySession(
+                result = SafeResult(result),
+                container = container,
+            )
+            val toolbar = createPaymentTopBar(currentActivity, title) {
+                completeOverlaySession(session, paymentViewDismissedPayload())
+            }
             val paymentView = PaymentView(currentActivity)
-            container.addView(
+            content.addView(
+                toolbar,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(currentActivity, 56f)
+                )
+            )
+            content.addView(
                 paymentView,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+            )
+            container.addView(
+                content,
                 FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT
@@ -501,11 +543,12 @@ class FreedompayPlugin :
                 )
             )
             overlayContainer = container
+            activeOverlaySession = session
             try {
-                action(paymentView)
+                action(paymentView, session)
             } catch (exception: Exception) {
                 dismissOverlay()
-                result.error("NATIVE_ERROR", exception.localizedMessage, null)
+                session.result.error("NATIVE_ERROR", exception.localizedMessage, null)
             }
         }
     }
@@ -514,13 +557,105 @@ class FreedompayPlugin :
         val currentActivity = activity ?: return
         val container = overlayContainer ?: return
         currentActivity.runOnUiThread {
-            val parent = container.parent
-            if (parent is ViewGroup) {
-                parent.removeView(container)
-            }
+            dismissOverlayContainer(container)
             overlayContainer = null
+            activeOverlaySession = null
         }
     }
+
+    private fun completeOverlaySession(session: OverlaySession, payload: Map<String, Any?>) {
+        val currentActivity = activity
+        if (currentActivity == null) {
+            if (activeOverlaySession === session) {
+                dismissOverlayContainer(session.container)
+                overlayContainer = null
+                activeOverlaySession = null
+            }
+            session.result.success(payload)
+            return
+        }
+
+        currentActivity.runOnUiThread {
+            if (activeOverlaySession === session) {
+                dismissOverlayContainer(session.container)
+                overlayContainer = null
+                activeOverlaySession = null
+            }
+            session.result.success(payload)
+        }
+    }
+
+    private fun dismissOverlayContainer(container: FrameLayout) {
+        val parent = container.parent
+        if (parent is ViewGroup) {
+            parent.removeView(container)
+        }
+    }
+
+    private fun createPaymentTopBar(
+        currentActivity: Activity,
+        title: String,
+        onBack: () -> Unit
+    ): FrameLayout {
+        val toolbar = FrameLayout(currentActivity).apply {
+            setBackgroundColor(Color.WHITE)
+            elevation = dp(currentActivity, 2f).toFloat()
+        }
+
+        val backButton = AppCompatImageButton(currentActivity).apply {
+            background = null
+            imageTintList = ColorStateList.valueOf(Color.BLACK)
+            setImageResource(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
+            contentDescription = "Назад"
+            setOnClickListener { onBack() }
+        }
+
+        toolbar.addView(
+            backButton,
+            FrameLayout.LayoutParams(
+                dp(currentActivity, 48f),
+                dp(currentActivity, 48f),
+                Gravity.START or Gravity.CENTER_VERTICAL
+            ).apply {
+                marginStart = dp(currentActivity, 4f)
+            }
+        )
+
+        val titleView = TextView(currentActivity).apply {
+            text = title
+            gravity = Gravity.CENTER
+            setTextColor(Color.BLACK)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            typeface = Typeface.DEFAULT_BOLD
+        }
+
+        toolbar.addView(
+            titleView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+        )
+
+        return toolbar
+    }
+
+    private fun paymentScreenTitle(orderId: String?): String {
+        return if (orderId.isNullOrEmpty()) {
+            "Оплата"
+        } else {
+            "Оплата заказа #$orderId"
+        }
+    }
+
+    private fun paymentViewDismissedPayload(): Map<String, Any?> = mapOf(
+        "payment" to null,
+        "error" to mapOf(
+            "errorCode" to "PAYMENT_VIEW_DISMISSED",
+            "description" to "FreedomPay payment screen was closed by user"
+        )
+    )
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
@@ -534,8 +669,49 @@ class FreedompayPlugin :
         activity = binding.activity
     }
 
-    override fun onDetachedFromActivity() {
-        activity = null
+override fun onDetachedFromActivity() {
+    activity = null
+}
+}
+
+private fun dp(activity: Activity, value: Float): Int {
+    return TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP,
+        value,
+        activity.resources.displayMetrics
+    ).toInt()
+}
+
+private data class OverlaySession(
+    val result: SafeResult,
+    val container: FrameLayout,
+)
+
+private class SafeResult(
+    private val delegate: Result
+) : Result {
+    @Volatile
+    private var completed = false
+
+    @Synchronized
+    override fun success(result: Any?) {
+        if (completed) return
+        completed = true
+        delegate.success(result)
+    }
+
+    @Synchronized
+    override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
+        if (completed) return
+        completed = true
+        delegate.error(errorCode, errorMessage, errorDetails)
+    }
+
+    @Synchronized
+    override fun notImplemented() {
+        if (completed) return
+        completed = true
+        delegate.notImplemented()
     }
 }
 

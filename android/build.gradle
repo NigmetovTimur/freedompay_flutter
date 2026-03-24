@@ -65,6 +65,7 @@ android {
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
     // MIGRATED: use FreedomPay Merchant SDK
     implementation("com.github.freedompay-global:merchant-sdk-android:1.1.2")
 }

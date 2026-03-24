@@ -1,3 +1,7 @@
+## 0.4.4
+
+* Bump plugin version for the latest iOS native fixes and archive compatibility updates.
+
 ## 0.4.3
 
 * Fix iOS archive compilation under newer Swift toolchains by making closure captures explicit for helper calls used in payment diagnostics.
