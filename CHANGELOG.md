@@ -1,3 +1,7 @@
+## 0.4.2
+
+* Fix iOS archive compatibility with newer Xcode/Swift toolchains by replacing deprecated `NSStringFromCGRect` diagnostics with `NSCoder.string(for:)`.
+
 ## 0.4.1
 
 * Fix iOS payment presentation by moving `PaymentView` into a dedicated full-screen `UIViewController`, waiting for `viewDidAppear`, and returning explicit Flutter error payloads when the UI cannot be shown or does not start loading.
