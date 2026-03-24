@@ -784,7 +784,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
             "PaymentView attached to presentation controller",
             details: [
               "flow": flowName,
-              "paymentViewFrame": NSStringFromCGRect(paymentView.frame),
+              "paymentViewFrame": encodeRect(paymentView.frame),
               "paymentViewWindowAttached": paymentView.window != nil,
             ]
           )
@@ -943,7 +943,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
           details: [
             "stage": "load",
             "paymentViewWindowAttached": session.controller.paymentView.window != nil,
-            "paymentViewFrame": NSStringFromCGRect(session.controller.paymentView.frame),
+            "paymentViewFrame": encodeRect(session.controller.paymentView.frame),
           ]
         )
       )
@@ -1385,7 +1385,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       "isKeyWindow": window.isKeyWindow,
       "isHidden": window.isHidden,
       "windowLevel": window.windowLevel.rawValue,
-      "frame": NSStringFromCGRect(window.frame),
+      "frame": encodeRect(window.frame),
       "rootViewController": window.rootViewController.map { String(describing: type(of: $0)) } ?? "nil",
     ]
   }
@@ -1423,6 +1423,10 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     }
 
     NSLog("%@ %@ %@", prefix, message, String(describing: payload))
+  }
+
+  private func encodeRect(_ rect: CGRect) -> String {
+    NSCoder.string(for: rect)
   }
 }
 
