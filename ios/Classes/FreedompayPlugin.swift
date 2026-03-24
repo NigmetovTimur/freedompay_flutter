@@ -12,7 +12,9 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
   private var userPhone: String?
   private var userContactEmail: String?
   private var userEmail: String?
-  private var overlayContainer: UIView?
+  private var activePaymentSession: PaymentViewSession?
+  private let paymentPresentationTimeout: TimeInterval = 3
+  private let paymentLoadStartTimeout: TimeInterval = 10
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "freedompay", binaryMessenger: registrar.messenger())
@@ -128,28 +130,16 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       extraParams: mapExtraParams(arguments["extraParams"])
     )
 
-    withPaymentView(result: result) { paymentView in
-      api.setPaymentView(paymentView)
-      api.createPaymentPage(paymentRequest: request) { sdkResult in
-        switch sdkResult {
-        case let .success(payment):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": self.mapFromPaymentResponse(payment),
-              "error": NSNull(),
-            ]
-          )
-        case let .error(error):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": NSNull(),
-              "error": self.mapFromError(error),
-            ]
-          )
-        }
-      }
+    executePaymentViewFlow(flowName: "createPayment", api: api, result: result) { completion in
+      self.log(
+        "Invoking FreedomPaymentSdk.createPaymentPage",
+        details: [
+          "flow": "createPayment",
+          "orderId": arguments["orderId"] as? String,
+          "userId": arguments["userId"] as? String,
+        ]
+      )
+      api.createPaymentPage(paymentRequest: request, onResult: completion)
     }
   }
 
@@ -175,28 +165,16 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       extraParams: mapExtraParams(arguments["extraParams"])
     )
 
-    withPaymentView(result: result) { paymentView in
-      api.setPaymentView(paymentView)
-      api.createPaymentFrame(paymentRequest: request) { sdkResult in
-        switch sdkResult {
-        case let .success(payment):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": self.mapFromPaymentResponse(payment),
-              "error": NSNull(),
-            ]
-          )
-        case let .error(error):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": NSNull(),
-              "error": self.mapFromError(error),
-            ]
-          )
-        }
-      }
+    executePaymentViewFlow(flowName: "createPaymentFrame", api: api, result: result) { completion in
+      self.log(
+        "Invoking FreedomPaymentSdk.createPaymentFrame",
+        details: [
+          "flow": "createPaymentFrame",
+          "orderId": arguments["orderId"] as? String,
+          "userId": arguments["userId"] as? String,
+        ]
+      )
+      api.createPaymentFrame(paymentRequest: request, onResult: completion)
     }
   }
 
@@ -326,28 +304,15 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       return
     }
 
-    withPaymentView(result: result) { paymentView in
-      api.setPaymentView(paymentView)
-      api.confirmCardPayment(paymentId.int64Value) { sdkResult in
-        switch sdkResult {
-        case let .success(payment):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": self.mapFromPaymentResponse(payment),
-              "error": NSNull(),
-            ]
-          )
-        case let .error(error):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": NSNull(),
-              "error": self.mapFromError(error),
-            ]
-          )
-        }
-      }
+    executePaymentViewFlow(flowName: "payByCard", api: api, result: result) { completion in
+      self.log(
+        "Invoking FreedomPaymentSdk.confirmCardPayment",
+        details: [
+          "flow": "payByCard",
+          "paymentId": paymentId.int64Value,
+        ]
+      )
+      api.confirmCardPayment(paymentId.int64Value, onResult: completion)
     }
   }
 
@@ -510,28 +475,16 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     let orderId = (arguments["orderId"] as? String)?.nonEmpty
       ?? (arguments["postLink"] as? String)?.nonEmpty
 
-    withPaymentView(result: result) { paymentView in
-      api.setPaymentView(paymentView)
-      api.addNewCard(userId: userId, orderId: orderId) { sdkResult in
-        switch sdkResult {
-        case let .success(payment):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": self.mapFromPaymentResponse(payment),
-              "error": NSNull(),
-            ]
-          )
-        case let .error(error):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": NSNull(),
-              "error": self.mapFromError(error),
-            ]
-          )
-        }
-      }
+    executePaymentViewFlow(flowName: "addNewCard", api: api, result: result) { completion in
+      self.log(
+        "Invoking FreedomPaymentSdk.addNewCard",
+        details: [
+          "flow": "addNewCard",
+          "orderId": orderId,
+          "userId": userId,
+        ]
+      )
+      api.addNewCard(userId: userId, orderId: orderId, onResult: completion)
     }
   }
 
@@ -624,28 +577,15 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       return
     }
 
-    withPaymentView(result: result) { paymentView in
-      api.setPaymentView(paymentView)
-      api.confirmDirectPayment(paymentId.int64Value) { sdkResult in
-        switch sdkResult {
-        case let .success(payment):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": self.mapFromPaymentResponse(payment),
-              "error": NSNull(),
-            ]
-          )
-        case let .error(error):
-          self.deliver(
-            result: result,
-            payload: [
-              "payment": NSNull(),
-              "error": self.mapFromError(error),
-            ]
-          )
-        }
-      }
+    executePaymentViewFlow(flowName: "createNonAcceptancePayment", api: api, result: result) { completion in
+      self.log(
+        "Invoking FreedomPaymentSdk.confirmDirectPayment",
+        details: [
+          "flow": "createNonAcceptancePayment",
+          "paymentId": paymentId.int64Value,
+        ]
+      )
+      api.confirmDirectPayment(paymentId.int64Value, onResult: completion)
     }
   }
 
@@ -778,48 +718,136 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     return api
   }
 
-  private func withPaymentView(result: @escaping FlutterResult, action: @escaping (PaymentView) -> Void) {
+  private func executePaymentViewFlow(
+    flowName: String,
+    api: FreedomAPI,
+    result: @escaping FlutterResult,
+    action: @escaping (@escaping (FreedomResult<PaymentResponse>) -> Void) -> Void
+  ) {
     DispatchQueue.main.async {
-      guard let hostView = self.resolveHostView() else {
-        result(FlutterError(code: "NO_VIEW", message: "Unable to resolve a host view for PaymentView", details: nil))
+      if let session = self.activePaymentSession, !session.isCompleted {
+        self.log(
+          "Rejecting payment flow because another flow is still active",
+          details: [
+            "flow": flowName,
+            "activeFlow": session.flowName,
+          ]
+        )
+        result(
+          self.paymentViewFailurePayload(
+            flowName: flowName,
+            code: "PAYMENT_IN_PROGRESS",
+            description: "Another FreedomPay UI flow is already in progress",
+            details: ["activeFlow": session.flowName]
+          )
+        )
         return
       }
 
-      self.dismissOverlay()
+      guard let target = self.resolvePresentationTarget() else {
+        let diagnostics = self.presentationDiagnostics()
+        self.log(
+          "Unable to resolve an iOS presenter for PaymentView",
+          details: [
+            "flow": flowName,
+            "diagnostics": diagnostics,
+          ]
+        )
+        result(
+          self.paymentViewFailurePayload(
+            flowName: flowName,
+            code: "NO_PRESENTING_CONTROLLER",
+            description: "Unable to resolve an active iOS view controller for FreedomPay presentation",
+            details: diagnostics
+          )
+        )
+        return
+      }
 
-      let container = UIView(frame: hostView.bounds)
-      container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.backgroundColor = .white
+      let controller = FreedompayPaymentViewController(flowName: flowName)
+      let session = PaymentViewSession(
+        flowName: flowName,
+        controller: controller,
+        result: result
+      )
+      self.activePaymentSession = session
 
-      let paymentView = PaymentView()
-      paymentView.translatesAutoresizingMaskIntoConstraints = false
-      container.addSubview(paymentView)
-      NSLayoutConstraint.activate([
-        paymentView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-        paymentView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-        paymentView.topAnchor.constraint(equalTo: container.topAnchor),
-        paymentView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-      ])
+      controller.onDidAppear = { [weak self, weak session, weak controller] in
+        guard let self, let session, let controller else { return }
+        self.handlePaymentControllerDidAppear(session: session) {
+          let paymentView = controller.paymentView
+          paymentView.onLoadingStateChanged { [weak self, weak session] isLoading in
+            guard let self, let session else { return }
+            self.handleLoadingStateChanged(isLoading, session: session)
+          }
+          self.log(
+            "PaymentView attached to presentation controller",
+            details: [
+              "flow": flowName,
+              "paymentViewFrame": NSStringFromCGRect(paymentView.frame),
+              "paymentViewWindowAttached": paymentView.window != nil,
+            ]
+          )
+          api.setPaymentView(paymentView)
+          self.log("FreedomAPI.setPaymentView finished", details: ["flow": flowName])
+          self.startLoadingWatchdog(for: session)
+          action { [weak self, weak session] sdkResult in
+            guard let self, let session else { return }
+            self.handlePaymentViewResult(sdkResult, session: session)
+          }
+        }
+      }
 
-      hostView.addSubview(container)
-      self.overlayContainer = container
-      action(paymentView)
+      controller.onDismissed = { [weak self, weak session] in
+        guard let self, let session else { return }
+        self.handleUnexpectedPaymentControllerDismissal(session: session)
+      }
+
+      self.log(
+        "Presenting full-screen FreedomPay controller",
+        details: [
+          "flow": flowName,
+          "presenter": self.describe(controller: target.presenter),
+          "window": self.describe(window: target.window),
+        ]
+      )
+      self.startPresentationWatchdog(for: session)
+      target.presenter.present(controller, animated: true) { [weak self, weak session] in
+        guard let self, let session else { return }
+        self.log(
+          "FreedomPay presentation completion block fired",
+          details: [
+            "flow": flowName,
+            "didAppear": session.didAppear,
+            "controller": self.describe(controller: controller),
+          ]
+        )
+      }
     }
   }
 
-  private func resolveHostView() -> UIView? {
+  private func resolvePresentationTarget() -> PaymentPresentationTarget? {
     let windowScenes = UIApplication.shared.connectedScenes
       .compactMap { $0 as? UIWindowScene }
       .filter { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }
-    let window = windowScenes
+    let windows = windowScenes
       .flatMap(\.windows)
-      .first(where: \.isKeyWindow)
-      ?? windowScenes.flatMap(\.windows).first(where: { !$0.isHidden })
-
-    if let topController = resolveTopViewController(from: window?.rootViewController) {
-      return topController.view
+      .filter {
+        !$0.isHidden &&
+        $0.alpha > 0 &&
+        $0.windowLevel == .normal &&
+        $0.rootViewController != nil
+      }
+    let window = windows.first(where: \.isKeyWindow) ?? windows.first
+    guard let window, let rootController = window.rootViewController else {
+      return nil
     }
-    return window
+
+    let resolvedPresenter = resolveTopViewController(from: rootController) ?? rootController
+    if resolvedPresenter is UIAlertController, let presentingController = resolvedPresenter.presentingViewController {
+      return PaymentPresentationTarget(window: window, presenter: presentingController)
+    }
+    return PaymentPresentationTarget(window: window, presenter: resolvedPresenter)
   }
 
   private func resolveTopViewController(from controller: UIViewController?) -> UIViewController? {
@@ -835,16 +863,203 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     return controller
   }
 
-  private func dismissOverlay() {
+  private func handlePaymentControllerDidAppear(
+    session: PaymentViewSession,
+    onReady: @escaping () -> Void
+  ) {
     DispatchQueue.main.async {
-      self.overlayContainer?.removeFromSuperview()
-      self.overlayContainer = nil
+      guard self.activePaymentSession === session, !session.isCompleted, !session.didAppear else {
+        return
+      }
+
+      session.didAppear = true
+      session.presentationWatchdog?.cancel()
+      session.controller.view.layoutIfNeeded()
+      self.log(
+        "FreedomPay controller did appear",
+        details: [
+          "flow": session.flowName,
+          "controller": self.describe(controller: session.controller),
+          "window": self.describe(window: session.controller.view.window),
+        ]
+      )
+      onReady()
+    }
+  }
+
+  private func startPresentationWatchdog(for session: PaymentViewSession) {
+    let watchdog = DispatchWorkItem { [weak self, weak session] in
+      guard let self, let session else { return }
+      guard self.activePaymentSession === session, !session.isCompleted, !session.didAppear else {
+        return
+      }
+
+      self.log(
+        "FreedomPay presentation timed out before viewDidAppear",
+        details: [
+          "flow": session.flowName,
+          "controller": self.describe(controller: session.controller),
+        ]
+      )
+      self.completePaymentViewFlow(
+        session: session,
+        payload: self.paymentViewFailurePayload(
+          flowName: session.flowName,
+          code: "PAYMENT_VIEW_PRESENTATION_TIMEOUT",
+          description: "FreedomPay payment screen was not presented on iOS",
+          details: [
+            "stage": "present",
+            "controller": self.describe(controller: session.controller),
+          ]
+        )
+      )
+    }
+
+    session.presentationWatchdog = watchdog
+    DispatchQueue.main.asyncAfter(deadline: .now() + paymentPresentationTimeout, execute: watchdog)
+  }
+
+  private func startLoadingWatchdog(for session: PaymentViewSession) {
+    let watchdog = DispatchWorkItem { [weak self, weak session] in
+      guard let self, let session else { return }
+      guard self.activePaymentSession === session, !session.isCompleted, !session.didStartLoading else {
+        return
+      }
+
+      self.log(
+        "FreedomPay payment page did not start loading in time",
+        details: [
+          "flow": session.flowName,
+          "controller": self.describe(controller: session.controller),
+          "window": self.describe(window: session.controller.view.window),
+        ]
+      )
+      self.completePaymentViewFlow(
+        session: session,
+        payload: self.paymentViewFailurePayload(
+          flowName: session.flowName,
+          code: "PAYMENT_VIEW_NOT_LOADING",
+          description: "FreedomPay payment page did not start loading after presentation",
+          details: [
+            "stage": "load",
+            "paymentViewWindowAttached": session.controller.paymentView.window != nil,
+            "paymentViewFrame": NSStringFromCGRect(session.controller.paymentView.frame),
+          ]
+        )
+      )
+    }
+
+    session.loadingWatchdog = watchdog
+    DispatchQueue.main.asyncAfter(deadline: .now() + paymentLoadStartTimeout, execute: watchdog)
+  }
+
+  private func handleLoadingStateChanged(_ isLoading: Bool, session: PaymentViewSession) {
+    DispatchQueue.main.async {
+      guard self.activePaymentSession === session, !session.isCompleted else {
+        return
+      }
+
+      session.controller.setLoading(isLoading)
+      self.log(
+        "PaymentView loading state changed",
+        details: [
+          "flow": session.flowName,
+          "isLoading": isLoading,
+          "didStartLoading": session.didStartLoading,
+        ]
+      )
+
+      if isLoading {
+        session.didStartLoading = true
+        session.loadingWatchdog?.cancel()
+      }
+    }
+  }
+
+  private func handlePaymentViewResult(
+    _ sdkResult: FreedomResult<PaymentResponse>,
+    session: PaymentViewSession
+  ) {
+    DispatchQueue.main.async {
+      guard self.activePaymentSession === session, !session.isCompleted else {
+        return
+      }
+
+      let payload: [String: Any?]
+      switch sdkResult {
+      case let .success(payment):
+        let mappedPayment = self.mapFromPaymentResponse(payment)
+        self.log(
+          "FreedomPay SDK returned success",
+          details: [
+            "flow": session.flowName,
+            "paymentId": payment.paymentId,
+            "status": self.mapFromPaymentStatus(payment.status),
+          ]
+        )
+        payload = [
+          "payment": mappedPayment,
+          "error": NSNull(),
+        ]
+      case let .error(error):
+        let mappedError = self.mapFromError(error)
+        self.log(
+          "FreedomPay SDK returned error",
+          details: [
+            "flow": session.flowName,
+            "error": mappedError,
+          ]
+        )
+        payload = [
+          "payment": NSNull(),
+          "error": mappedError,
+        ]
+      }
+
+      self.completePaymentViewFlow(session: session, payload: self.cleanDictionary(payload))
+    }
+  }
+
+  private func handleUnexpectedPaymentControllerDismissal(session: PaymentViewSession) {
+    DispatchQueue.main.async {
+      guard self.activePaymentSession === session, !session.isCompleted else {
+        return
+      }
+
+      self.log(
+        "FreedomPay controller was dismissed before SDK completion",
+        details: ["flow": session.flowName]
+      )
+      self.completePaymentViewFlow(
+        session: session,
+        payload: self.paymentViewFailurePayload(
+          flowName: session.flowName,
+          code: "PAYMENT_VIEW_DISMISSED",
+          description: "FreedomPay payment screen was dismissed before the SDK completed",
+          details: ["stage": "dismiss"]
+        )
+      )
+    }
+  }
+
+  private func completePaymentViewFlow(session: PaymentViewSession, payload: [String: Any]) {
+    cancelWatchdogs(for: session)
+    session.isCompleted = true
+    activePaymentSession = nil
+
+    let finishResult = {
+      session.result(payload)
+    }
+
+    if session.controller.presentingViewController != nil {
+      session.controller.dismiss(animated: true, completion: finishResult)
+    } else {
+      finishResult()
     }
   }
 
   private func deliver(result: @escaping FlutterResult, payload: [String: Any?]) {
     DispatchQueue.main.async {
-      self.dismissOverlay()
       result(self.cleanDictionary(payload))
     }
   }
@@ -868,13 +1083,18 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
 
   private func mapFromPaymentResponse(_ payment: PaymentResponse?) -> [String: Any?]? {
     guard let payment = payment else { return nil }
-    return [
+    var mapped: [String: Any?] = [
       "status": mapFromPaymentStatus(payment.status),
       "paymentId": payment.paymentId,
       "merchantId": payment.merchantId,
       "orderId": payment.orderId,
       "redirectUrl": NSNull(),
     ]
+    if case let .error(code, description) = payment.status {
+      mapped["failureCode"] = code
+      mapped["failureDescription"] = description
+    }
+    return mapped
   }
 
   private func mapFromStatus(_ status: Status?) -> [String: Any?]? {
@@ -988,29 +1208,94 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     case let .transaction(errorCode, errorDescription):
       return [
         "errorCode": errorCode,
-        "description": errorDescription ?? "",
+        "description": errorDescription ?? "Transaction failed with code \(errorCode)",
       ]
     case let .validationError(errors):
       let message = errors.map { $0.rawValue }.joined(separator: ", ")
       return [
-        "errorCode": -2,
+        "errorCode": "ValidationError",
         "description": message,
+        "details": ["errors": errors.map { $0.rawValue }],
       ]
     case .paymentInitializationFailed:
       return [
-        "errorCode": -3,
+        "errorCode": "PaymentInitializationFailed",
         "description": "Payment initialization failed",
       ]
     case let .networkError(networkError):
-      return [
-        "errorCode": -4,
-        "description": "Network error: \(networkError)",
-      ]
+      return mapFromNetworkError(networkError)
     case let .infrastructureError(infraError):
+      return mapFromInfrastructureError(infraError)
+    }
+  }
+
+  private func mapFromNetworkError(_ error: NetworkError) -> [String: Any?] {
+    switch error {
+    case let .protocol(code, body):
       return [
-        "errorCode": -5,
-        "description": "Infrastructure error: \(infraError)",
+        "errorCode": "Protocol",
+        "description": "Protocol error (HTTP \(code))",
+        "details": [
+          "code": code,
+          "body": body,
+        ],
       ]
+    case let .connectivity(connectivity):
+      switch connectivity {
+      case .connectionFailed:
+        return [
+          "errorCode": "ConnectionFailed",
+          "description": "Network connection failed",
+        ]
+      case .connectionTimeout:
+        return [
+          "errorCode": "ConnectionTimeout",
+          "description": "Network connection timed out",
+        ]
+      case .integrity:
+        return [
+          "errorCode": "NetworkIntegrity",
+          "description": "Network integrity check failed",
+        ]
+      }
+    case .unknown:
+      return [
+        "errorCode": "NetworkUnknown",
+        "description": "Unknown network error",
+      ]
+    }
+  }
+
+  private func mapFromInfrastructureError(_ error: InfrastructureError) -> [String: Any?] {
+    switch error {
+    case .sdkNotConfigured:
+      return [
+        "errorCode": "SdkNotConfigured",
+        "description": "SDK is not configured",
+      ]
+    case .sdkCleared:
+      return [
+        "errorCode": "SdkCleared",
+        "description": "SDK was cleared before completion",
+      ]
+    case .parsingError:
+      return [
+        "errorCode": "ParsingError",
+        "description": "Failed to parse FreedomPay response",
+      ]
+    case let .webView(webViewError):
+      switch webViewError {
+      case .paymentViewIsNotInitialized:
+        return [
+          "errorCode": "PaymentViewIsNotInitialized",
+          "description": "PaymentView is not attached to the active window hierarchy",
+        ]
+      case .failed:
+        return [
+          "errorCode": "WebViewFailed",
+          "description": "Payment page failed inside the embedded web view",
+        ]
+      }
     }
   }
 
@@ -1026,7 +1311,7 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
       return "Incomplete"
     case .success:
       return "Success"
-    case .error:
+    case .error(_, _):
       return "Error"
     case let .unknown(value):
       return "Unknown(\(value))"
@@ -1047,10 +1332,195 @@ public class FreedompayPlugin: NSObject, FlutterPlugin {
     }
     return params.isEmpty ? nil : params
   }
+
+  private func paymentViewFailurePayload(
+    flowName: String,
+    code: String,
+    description: String,
+    details: [String: Any?] = [:]
+  ) -> [String: Any] {
+    var payloadDetails = details
+    payloadDetails["flow"] = flowName
+    return cleanDictionary([
+      "payment": NSNull(),
+      "error": [
+        "errorCode": code,
+        "description": description,
+        "details": payloadDetails,
+      ],
+    ])
+  }
+
+  private func presentationDiagnostics() -> [String: Any?] {
+    let scenes = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+    let windows = scenes
+      .flatMap(\.windows)
+      .map { window in
+        let rootName = window.rootViewController.map { String(describing: type(of: $0)) } ?? "nil"
+        return "\(type(of: window))(hidden:\(window.isHidden),key:\(window.isKeyWindow),level:\(window.windowLevel.rawValue),root:\(rootName))"
+      }
+
+    return [
+      "sceneCount": scenes.count,
+      "sceneStates": scenes.map { String(describing: $0.activationState) },
+      "windows": windows,
+    ]
+  }
+
+  private func cancelWatchdogs(for session: PaymentViewSession) {
+    session.presentationWatchdog?.cancel()
+    session.presentationWatchdog = nil
+    session.loadingWatchdog?.cancel()
+    session.loadingWatchdog = nil
+  }
+
+  private func describe(window: UIWindow?) -> [String: Any?] {
+    guard let window else {
+      return ["exists": false]
+    }
+    return [
+      "exists": true,
+      "class": String(describing: type(of: window)),
+      "isKeyWindow": window.isKeyWindow,
+      "isHidden": window.isHidden,
+      "windowLevel": window.windowLevel.rawValue,
+      "frame": NSStringFromCGRect(window.frame),
+      "rootViewController": window.rootViewController.map { String(describing: type(of: $0)) } ?? "nil",
+    ]
+  }
+
+  private func describe(controller: UIViewController?) -> [String: Any?] {
+    guard let controller else {
+      return ["exists": false]
+    }
+    return [
+      "exists": true,
+      "class": String(describing: type(of: controller)),
+      "isBeingPresented": controller.isBeingPresented,
+      "isBeingDismissed": controller.isBeingDismissed,
+      "viewInWindow": controller.viewIfLoaded?.window != nil,
+      "presentedViewController": controller.presentedViewController.map {
+        String(describing: type(of: $0))
+      } ?? "nil",
+    ]
+  }
+
+  private func log(_ message: String, details: [String: Any?] = [:]) {
+    let prefix = "[FreedompayPlugin][iOS]"
+    guard !details.isEmpty else {
+      NSLog("%@ %@", prefix, message)
+      return
+    }
+
+    let payload = cleanDictionary(details)
+    if JSONSerialization.isValidJSONObject(payload),
+       let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
+       let json = String(data: data, encoding: .utf8)
+    {
+      NSLog("%@ %@ %@", prefix, message, json)
+      return
+    }
+
+    NSLog("%@ %@ %@", prefix, message, String(describing: payload))
+  }
 }
 
 private extension String {
   var nonEmpty: String? {
     isEmpty ? nil : self
+  }
+}
+
+private struct PaymentPresentationTarget {
+  let window: UIWindow
+  let presenter: UIViewController
+}
+
+private final class PaymentViewSession {
+  let flowName: String
+  let controller: FreedompayPaymentViewController
+  let result: FlutterResult
+  var didAppear = false
+  var didStartLoading = false
+  var isCompleted = false
+  var presentationWatchdog: DispatchWorkItem?
+  var loadingWatchdog: DispatchWorkItem?
+
+  init(
+    flowName: String,
+    controller: FreedompayPaymentViewController,
+    result: @escaping FlutterResult
+  ) {
+    self.flowName = flowName
+    self.controller = controller
+    self.result = result
+  }
+}
+
+@MainActor
+private final class FreedompayPaymentViewController: UIViewController {
+  let flowName: String
+  let paymentView = PaymentView()
+  private let activityIndicator = UIActivityIndicatorView(style: .large)
+  private var didNotifyAppear = false
+  var onDidAppear: (() -> Void)?
+  var onDismissed: (() -> Void)?
+
+  init(flowName: String) {
+    self.flowName = flowName
+    super.init(nibName: nil, bundle: nil)
+    modalPresentationStyle = .fullScreen
+    isModalInPresentation = true
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .systemBackground
+
+    paymentView.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(paymentView)
+
+    activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+    activityIndicator.hidesWhenStopped = true
+    activityIndicator.startAnimating()
+    view.addSubview(activityIndicator)
+
+    NSLayoutConstraint.activate([
+      paymentView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      paymentView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      paymentView.topAnchor.constraint(equalTo: view.topAnchor),
+      paymentView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+      activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+    ])
+  }
+
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    guard !didNotifyAppear else { return }
+    didNotifyAppear = true
+    onDidAppear?()
+  }
+
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    guard isBeingDismissed || navigationController?.isBeingDismissed == true else {
+      return
+    }
+    onDismissed?()
+  }
+
+  func setLoading(_ isLoading: Bool) {
+    if isLoading {
+      activityIndicator.startAnimating()
+    } else {
+      activityIndicator.stopAnimating()
+    }
   }
 }

@@ -1,3 +1,8 @@
+## 0.4.1
+
+* Fix iOS payment presentation by moving `PaymentView` into a dedicated full-screen `UIViewController`, waiting for `viewDidAppear`, and returning explicit Flutter error payloads when the UI cannot be shown or does not start loading.
+* Add detailed iOS native diagnostics for presentation, loading, and SDK/webview failures so stalled FreedomPay flows are visible in device logs and Flutter error payloads instead of hanging until timeout.
+
 ## 0.4.0
 
 * Synchronize the public Flutter API with Android and iOS plugins: add `createPaymentFrame`, forward `includeLastTransactionInfo`, support `orderId` in `addNewCard`, and support `cardToken` in `removeAddedCard`.
